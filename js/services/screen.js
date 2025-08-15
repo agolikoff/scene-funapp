@@ -1,0 +1,392 @@
+import {
+    BaseService
+} from "./base.js";
+
+export class ScreenService extends BaseService {
+    
+    // Helper function to add cache-busting parameter to URLs
+    addCacheBuster(url) {
+        if (!url) return url;
+        const separator = url.includes('?') ? '&' : '?';
+        const timestamp = Date.now();
+        const random = Math.random().toString(36).substring(2, 8);
+        return `${url}${separator}v=${timestamp}_${random}`;
+    }
+    
+    updateScreens() {
+        this.app.checkIfLoaded();
+
+        let logoURL = "./tex/pix.png";
+        if (this.app.extractedData && this.app.extractedData.screensTeam == 'home' && this.app.extractedData.logoHome) {
+            logoURL = this.addCacheBuster(this.app.extractedData.logoHome);
+        }
+        else if(this.app.extractedData && this.app.extractedData.screensTeam != 'home' && this.app.extractedData.logoOpponent) {
+            logoURL = this.addCacheBuster(this.app.extractedData.logoOpponent);
+        }
+
+        let sponsorLogo = logoURL;
+        if (this.app.extractedData && this.app.extractedData.lowerWall) {
+            sponsorLogo = this.addCacheBuster(this.app.extractedData.lowerWall);
+        }
+        let sponsor_lower_wall = logoURL;
+        if (this.app.extractedData && this.app.extractedData.lowerWall) {
+            sponsor_lower_wall = this.addCacheBuster(this.app.extractedData.lowerWall);
+        }
+        let sponsor_upper_wall = logoURL;
+        if (this.app.extractedData && this.app.extractedData.upperWall) {
+            sponsor_upper_wall = this.addCacheBuster(this.app.extractedData.upperWall);
+        }
+        let sponsor_hoop = logoURL;
+        if (this.app.extractedData && this.app.extractedData.hoop) {
+            sponsor_hoop = this.addCacheBuster(this.app.extractedData.hoop);
+        }
+        let sponsor_center = logoURL;
+        if (this.app.extractedData && this.app.extractedData.center) {
+            sponsor_center = this.addCacheBuster(this.app.extractedData.center);
+        }
+        
+        let backgroundImgUrl = "./tex/main_screen_background.jpg";
+        if (this.app.extractedData && this.app.extractedData.screensCenter) {
+            backgroundImgUrl = this.addCacheBuster(this.app.extractedData.screensCenter);
+        }
+        if (this.app.extractedData && this.app.extractedData.court) {
+            let courtImgUrl = this.addCacheBuster(this.app.extractedData.court);
+            let courtMaterial = this.app.scene.getMaterialByName('marking');
+            courtMaterial.albedoTexture.updateURL(courtImgUrl);
+            courtMaterial.emissiveTexture.updateURL(courtImgUrl);
+        }
+        this.setUpScreens({
+            "screen_1": backgroundImgUrl
+        }, this.app.scene)
+
+        let blackpix = './tex/black.png';
+        this.setUpScreens({
+            "screen_2": blackpix,
+            "screen_3": blackpix,
+            "screen_4": blackpix,
+            "screen_5": blackpix
+        }, this.app.scene)
+
+        if (this.app.IS_CHROMAKEY) {
+            sponsor_lower_wall = sponsor_upper_wall = sponsor_hoop = sponsor_center = './tex/blue.png';
+            logoURL = './tex/red.png';
+        }
+
+        /*const sponsorMaterial = this.app.scene.getMaterialByName('sponsor');
+        sponsorMaterial.albedoTexture.updateURL(sponsorLogo);*/
+
+        const markingMaterial = this.app.scene.getMaterialByName('marking');
+        markingMaterial.zOffset = 0;
+
+        const sponsorUpperWallMaterial = this.app.scene.getMaterialByName('sponsor_upper_wall');
+        sponsorUpperWallMaterial.albedoTexture.updateURL(sponsor_upper_wall);
+        
+        const sponsorHoopMaterial = this.app.scene.getMaterialByName('sponsor_hoop');
+        sponsorHoopMaterial.albedoTexture.updateURL(sponsor_hoop);
+        //sponsorHoopMaterial.zOffset = -1;
+        
+        this.app.scene.getMeshById('logo_center').position.y += 0.01;
+        const sponsorCenterMaterial = this.app.scene.getMaterialByName('sponsor_center');
+        sponsorCenterMaterial.zOffset = -1;
+        sponsorCenterMaterial.albedoTexture.updateURL(sponsor_center);
+        
+        this.app.scene.getMeshById('logo_shottracker').position.y += 0.01;
+        const shottrackerMaterial = this.app.scene.getMaterialByName('shottracker');
+        shottrackerMaterial.zOffset = -1;
+        
+        const sponsorLowerWallMaterial = this.app.scene.getMaterialByName('sponsor_lower_wall');
+        sponsorLowerWallMaterial.albedoTexture.updateURL(sponsor_lower_wall);
+        sponsorLowerWallMaterial.zOffset = -1;
+        
+        const logoMaterialLower = this.app.scene.getMaterialByName('logo_lower');
+        logoMaterialLower.albedoTexture.updateURL(logoURL);
+
+        const logoMaterialUpper = this.app.scene.getMaterialByName('logo_upper');
+        logoMaterialUpper.albedoTexture.updateURL(logoURL);
+       
+        //console.log('screens');
+
+        if (this.app.extractedData && !this.app.IS_CHROMAKEY) {
+
+            /*if (this.app.extractedData.player) {
+                this.setUpMainScreen({
+                    firstName: this.app.extractedData.player.first_name,
+                    lastName: this.app.extractedData.player.last_name,
+                    number: this.app.extractedData.player.jersey_number_str,
+                    stat1: this.app.stat1 || "",
+                    stat2: this.app.stat2 || "",
+                    stat3: this.app.stat3 || "",
+                    backgroundImgUrl: backgroundImgUrl,
+                    teamLogoBackgroundImgUrl: logoURL,
+                    playerImgUrl: "https://shottracker.com/pimg/" + this.app.extractedData.player.image_light,
+                    color: this.app.mainColor
+                });
+            }*/
+            
+            if (this.app.extractedData.screensLeft) {
+                this.setUpScreens({
+                    "screen_4": this.addCacheBuster(this.app.extractedData.screensLeft)
+                }, this.app.scene)
+                if(!this.app.extractedData.screensRight)
+                this.setUpScreens({
+                    "screen_5": this.addCacheBuster(this.app.extractedData.screensLeft)
+                }, this.app.scene)
+            }
+            if (this.app.extractedData.screensRight) {
+                this.setUpScreens({
+                    "screen_5": this.addCacheBuster(this.app.extractedData.screensRight)
+                }, this.app.scene)
+                if(!this.app.extractedData.screensLeft)
+                this.setUpScreens({
+                    "screen_4": this.addCacheBuster(this.app.extractedData.screensRight)
+                }, this.app.scene)
+            }
+            if (this.app.extractedData.leftTunnel) {
+                this.setUpScreens({
+                    "screen_2": this.addCacheBuster(this.app.extractedData.leftTunnel)
+                }, this.app.scene)
+                if(!this.app.extractedData.rightTunnel)
+                this.setUpScreens({
+                    "screen_3": this.addCacheBuster(this.app.extractedData.leftTunnel)
+                }, this.app.scene)
+            }
+            else{
+                if(this.app.extractedData.logoTunnel){
+                    this.setUpScreens({
+                        "screen_2": this.addCacheBuster(this.app.extractedData.logoTunnel)
+                    }, this.app.scene)
+                }
+                else this.setUpScreens({
+                    "screen_2": logoURL
+                }, this.app.scene)
+            } 
+            if (this.app.extractedData.rightTunnel) {
+                this.setUpScreens({
+                    "screen_3": this.addCacheBuster(this.app.extractedData.rightTunnel)
+                }, this.app.scene)
+                if(!this.app.extractedData.leftTunnel)
+                this.setUpScreens({
+                    "screen_2": this.addCacheBuster(this.app.extractedData.rightTunnel)
+                }, this.app.scene)
+            }
+            else{
+                if(this.app.extractedData.logoTunnel){
+                    this.setUpScreens({
+                        "screen_3": this.addCacheBuster(this.app.extractedData.logoTunnel)
+                    }, this.app.scene)
+                }
+                else this.setUpScreens({
+                    "screen_3": logoURL
+                }, this.app.scene)
+            } 
+        }
+
+        if (this.app.IS_CHROMAKEY) {
+            let redpix = './tex/redpix.png';
+            this.setUpScreens({
+                "screen_1": redpix,
+                "screen_2": redpix,
+                "screen_3": redpix,
+                "screen_4": redpix,
+                "screen_5": redpix
+            }, this.app.scene)
+        }
+    }
+
+    setUpScreens(data = {}) {
+        if (!this.app.runtime.loaded) {
+            console.warn("Scene has not been loaded yet");
+            return;
+        }
+
+        for (const screenId in data) {
+            const screenMesh = this.app.scene.getMeshById(screenId);
+            if (screenMesh) {
+                screenMesh.material.albedoTexture.updateURL(data[screenId]);
+                screenMesh.material.emissiveTexture.updateURL(data[screenId]);
+            } else {
+                console.warn(`"${screenId}" mesh not found`);
+            }
+        }
+    }
+
+    async setUpMainScreen(data = {
+        firstName: "Text1",
+        lastName: "Text2",
+        number: "Text3",
+        stat1: "Text4",
+        stat2: "Text5",
+        stat3: "Text6",
+        backgroundImgUrl: null,
+        teamLogoBackgroundImgUrl: null,
+        playerImgUrl: null,
+        color: null,
+        noImage: false
+    }) {
+        this.app.checkIfLoaded();
+        console.log(data);
+        const font1 = new FontFace("KenyanCoffeeRg-BoldItalic", "url('./fonts/kenyan_coffee_bd_it-webfont.woff2') format('woff2'), url('./fonts/kenyan_coffee_bd_it-webfont.woff') format('woff')");
+        const font2 = new FontFace("KenyanCoffeeRg-Bold", "url('./fonts/kenyan_coffee_bd-webfont.woff2') format('woff2'), url('./fonts/kenyan_coffee_bd-webfont.woff') format('woff')");
+
+        const canvas = document.createElement('canvas');
+        canvas.width = 1920;
+        canvas.height = 540;
+        const ctx = canvas.getContext('2d');
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+        // Draw Background
+        /*const backgroundImg = new Image();
+        backgroundImg.crossOrigin = "anonymous";
+        const bgUrl = data.backgroundImgUrl || './tex/main_screen_background.jpg';
+        backgroundImg.src = data.backgroundImgUrl ? this.addCacheBuster(bgUrl) : bgUrl;
+        await backgroundImg.decode();
+        ctx.drawImage(backgroundImg, 0, 0, 3840, 1080);*/
+        
+        if(data.noImage && 0){
+            // Draw Player Background
+            const teamLogoBgImg = new Image();
+            teamLogoBgImg.crossOrigin = "anonymous";
+            const teamLogoUrl = data.teamLogoBackgroundImgUrl || './tex/main_screen_teamlogo_background.png';
+            teamLogoBgImg.src = data.teamLogoBackgroundImgUrl ? this.addCacheBuster(teamLogoUrl) : teamLogoUrl;
+            await teamLogoBgImg.decode();
+            ctx.globalAlpha = 0.59;
+            ctx.drawImage(teamLogoBgImg, 576, 216, 328, 330);
+            ctx.globalAlpha = 1.0;
+        }
+
+        await font1.load();
+        document.fonts.add(font1);
+
+        /*
+        // Draw First Name
+        ctx.font = '257px "KenyanCoffeeRg-BoldItalic"';
+        ctx.fillStyle = "#FFFFFF";
+        ctx.textAlign = "left";
+        ctx.shadowColor = "rgba(2,11,57,0.33)";
+        ctx.shadowOffsetX = 27;
+        ctx.shadowOffsetY = 27;
+        ctx.shadowBlur = 0;
+        ctx.fillText(data.firstName.toUpperCase() || "", 1180, 336);
+
+        // Draw Last Name
+        ctx.font = '309px "KenyanCoffeeRg-BoldItalic"';
+        ctx.strokeStyle = data.color;
+        ctx.shadowOffsetX = 0;
+        ctx.shadowOffsetY = 0;
+        ctx.lineWidth = 10;
+        ctx.filter = 'blur(20px)';
+        ctx.strokeText(data.lastName || "", 1127, 600);
+        ctx.filter = 'none';
+        ctx.shadowColor = data.color;
+        ctx.shadowBlur = 30;
+        ctx.lineWidth = 6;
+        ctx.fillText(data.lastName.toUpperCase() || "", 1127, 600);
+
+        // Draw Player Number
+        ctx.font = '556px "KenyanCoffeeRg-BoldItalic"';
+        ctx.strokeStyle = data.color;
+        ctx.lineWidth = 10;
+        ctx.filter = 'blur(20px)';
+        ctx.strokeText(data.number || "", 647, 576);
+        ctx.filter = 'none';
+        ctx.lineWidth = 6;
+        ctx.strokeText(data.number || "", 647, 576);
+        */
+        if(data.noImage && 0){
+            // Draw Stats Titles
+            ctx.textAlign = "right"
+            ctx.font = '130px "KenyanCoffeeRg-BoldItalic"';
+            /*ctx.strokeStyle = '#FFFFFF';
+            ctx.lineWidth = 10;
+            ctx.filter = 'blur(20px)';
+            ctx.strokeText("POINTS", 3000, 400);
+            ctx.strokeText("FG%", 3000, 655);
+            ctx.strokeText("3 PT FG%", 3000, 910);*/
+            ctx.filter = 'none';
+            /*ctx.lineWidth = 3;
+            ctx.strokeText("POINTS", 1500, 200);
+            ctx.strokeText("FG%", 1500, 327);
+            ctx.strokeText("3 PT FG%", 1500, 455);*/
+            ctx.fillStyle = "#FFFFFF";
+            ctx.fillText("POINTS", 1500, 200);
+            ctx.fillText("FG%", 1500, 327);
+            ctx.fillText("3 PT FG%", 1500, 455);
+            ctx.textAlign = "left"
+        }
+        
+        await font2.load();
+        document.fonts.add(font2);
+        
+        
+
+        // Draw Stats
+        ctx.font = '130px "KenyanCoffeeRg-Bold"';
+        ctx.fillStyle = "#FFFFFF";
+        /*ctx.shadowColor = "rgba(2,11,57,0.33)";
+        ctx.shadowOffsetX = 27;
+        ctx.shadowOffsetY = 27;
+        ctx.shadowBlur = 0;*/
+        ctx.fillText(data.stat1 || "", 1570, 200);
+        ctx.fillText(data.stat2 || "", 1570, 327);
+        ctx.fillText(data.stat3 || "", 1570, 455);
+        /*ctx.fillText(data.stat1 || "", 3200, 374);
+        ctx.fillText(data.stat2 || "", 3200, 596);
+        ctx.fillText(data.stat3 || "", 3200, 809);*/
+        
+        /*
+        // Draw Player Image
+        const playerImg = new Image();
+        playerImg.crossOrigin = "anonymous";
+        const playerUrl = data.playerImgUrl || './tex/main_screen_playerimage.png';
+        playerImg.src = data.playerImgUrl ? this.addCacheBuster(playerUrl) : playerUrl;
+        await playerImg.decode();
+        const outlineSize = 10; // Outline size
+        const x = 50; // X position of the image
+        const y = 100; // Y position of the image
+        ctx.shadowOffsetX = 10;
+        ctx.shadowOffsetY = 10;
+
+        // Creating a temporary canvas for the outline
+        const tempCanvas = document.createElement('canvas');
+        const tempCtx = tempCanvas.getContext('2d');
+        tempCanvas.width = playerImg.width + 2 * outlineSize;
+        tempCanvas.height = playerImg.height + 2 * outlineSize;
+
+        // Drawing the outline on the temporary canvas
+        tempCtx.drawImage(playerImg, outlineSize, outlineSize);
+        tempCtx.globalCompositeOperation = 'source-in';
+        tempCtx.fillStyle = data.color; // Outline color
+        tempCtx.fillRect(0, 0, tempCanvas.width, tempCanvas.height);
+
+        // Drawing the outline on the main canvas
+        for (let dx = -outlineSize; dx <= outlineSize; dx++) {
+            for (let dy = -outlineSize; dy <= outlineSize; dy++) {
+                if (dx * dx + dy * dy <= outlineSize * outlineSize) {
+                    ctx.drawImage(tempCanvas, x + dx, y + dy);
+                }
+            }
+        }
+
+        // Finally, drawing the image itself on top of the outline
+        ctx.drawImage(playerImg, x + outlineSize, y + outlineSize, 1215, 1008);
+        
+        */
+
+        const screenMesh = this.app.scene.getMeshById("screen_count");
+        //const base64 = canvas.toDataURL("image/jpeg", 0.5);
+        const base64 = canvas.toDataURL("image/png");
+        screenMesh.material.albedoTexture.hasAlpha = true;
+        screenMesh.material.emissiveTexture.hasAlpha = true;
+        screenMesh.material.albedoTexture.updateURL(base64);
+        screenMesh.material.emissiveTexture.updateURL(base64);
+
+        screenMesh.material.transparencyMode = 3;
+        screenMesh.material.alpha = 1.0;
+        screenMesh.setEnabled(true);
+        
+        //console.log(base64);
+    }
+    
+    
+    
+}

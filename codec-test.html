@@ -1,0 +1,305 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MediaRecorder Codec Support Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            line-height: 1.6;
+            margin: 20px;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        th, td {
+            border: 1px solid #ddd;
+            padding: 8px;
+            text-align: left;
+        }
+        th {
+            background-color: #f4f4f4;
+        }
+        canvas {
+            display: block;
+            margin: 20px auto;
+            border: 1px solid #ddd;
+        }
+        button, select {
+            margin: 10px;
+            padding: 10px 15px;
+            font-size: 16px;
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+    <h1>MediaRecorder Codec Support Test</h1>
+    <p>This page tests if the <code>MediaRecorder</code> API supports specific codecs in your browser.</p>
+
+    <canvas id="animationCanvas" width="400" height="200"></canvas>
+    <label for="codecSelector">Select Codec:</label>
+    <select id="codecSelector"></select>
+    <button id="startRecording">Start Recording</button>
+    <button id="stopRecording" disabled>Stop Recording</button>
+    <button id="downloadResults">Download Results (CSV)</button>
+
+    <table>
+        <thead>
+            <tr>
+                <th>#</th>
+                <th>Codec</th>
+                <th>Supported</th>
+            </tr>
+        </thead>
+        <tbody id="results"></tbody>
+    </table>
+
+    <script>
+        const codecs = [
+            'video/mp4;codecs=vp9',
+            'video/mp4;codecs:vp9',
+            'video/mp4;codecs=VP9',
+            'video/mp4;codecs:VP9',
+            'video/mp4',
+            'video/mp4;codecs=vp9.0',
+            'video/mp4;codecs:vp9.0',
+            'video/mp4;codecs=VP9.0',
+            'video/mp4;codecs:VP9.0',
+            'video/mp4',
+            'video/mp4;codecs=vp8',
+            'video/mp4;codecs:vp8',
+            'video/mp4;codecs=VP8',
+            'video/mp4;codecs:VP8',
+            'video/mp4',
+            'video/mp4;codecs=vp8.0',
+            'video/mp4;codecs:vp8.0',
+            'video/mp4;codecs=VP8.0',
+            'video/mp4;codecs:VP8.0',
+            'video/mp4',
+            'video/mp4;codecs=avc1',
+            'video/mp4;codecs:avc1',
+            'video/mp4;codecs=AVC1',
+            'video/mp4;codecs:AVC1',
+            'video/mp4',
+            'video/mp4;codecs=av1',
+            'video/mp4;codecs:av1',
+            'video/mp4;codecs=AV1',
+            'video/mp4;codecs:AV1',
+            'video/mp4',
+            'video/mp4;codecs=h265',
+            'video/mp4;codecs:h265',
+            'video/mp4;codecs=H265',
+            'video/mp4;codecs:H265',
+            'video/mp4',
+            'video/mp4;codecs=h.265',
+            'video/mp4;codecs:h.265',
+            'video/mp4;codecs=H.265',
+            'video/mp4;codecs:H.265',
+            'video/mp4',
+            'video/mp4;codecs=h264',
+            'video/mp4;codecs:h264',
+            'video/mp4;codecs=H264',
+            'video/mp4;codecs:H264',
+            'video/mp4',
+            'video/mp4;codecs=h.264',
+            'video/mp4;codecs:h.264',
+            'video/mp4;codecs=H.264',
+            'video/mp4;codecs:H.264',
+            'video/mp4',
+            'video/mp4;codecs=opus',
+            'video/mp4;codecs:opus',
+            'video/mp4;codecs=OPUS',
+            'video/mp4;codecs:OPUS',
+            'video/mp4',
+            'video/webm;codecs=vp9',
+            'video/webm;codecs:vp9',
+            'video/webm;codecs=VP9',
+            'video/webm;codecs:VP9',
+            'video/webm',
+            'video/webm;codecs=vp9.0',
+            'video/webm;codecs:vp9.0',
+            'video/webm;codecs=VP9.0',
+            'video/webm;codecs:VP9.0',
+            'video/webm',
+            'video/webm;codecs=vp8',
+            'video/webm;codecs:vp8',
+            'video/webm;codecs=VP8',
+            'video/webm;codecs:VP8',
+            'video/webm',
+            'video/webm;codecs=vp8.0',
+            'video/webm;codecs:vp8.0',
+            'video/webm;codecs=VP8.0',
+            'video/webm;codecs:VP8.0',
+            'video/webm',
+            'video/webm;codecs=avc1',
+            'video/webm;codecs:avc1',
+            'video/webm;codecs=AVC1',
+            'video/webm;codecs:AVC1',
+            'video/webm',
+            'video/webm;codecs=av1',
+            'video/webm;codecs:av1',
+            'video/webm;codecs=AV1',
+            'video/webm;codecs:AV1',
+            'video/webm',
+            'video/webm;codecs=h265',
+            'video/webm;codecs:h265',
+            'video/webm;codecs=H265',
+            'video/webm;codecs:H265',
+            'video/webm',
+            'video/webm;codecs=h.265',
+            'video/webm;codecs:h.265',
+            'video/webm;codecs=H.265',
+            'video/webm;codecs:H.265',
+            'video/webm',
+            'video/webm;codecs=h264',
+            'video/webm;codecs:h264',
+            'video/webm;codecs=H264',
+            'video/webm;codecs:H264',
+            'video/webm',
+            'video/webm;codecs=h.264',
+            'video/webm;codecs:h.264',
+            'video/webm;codecs=H.264',
+            'video/webm;codecs:H.264',
+            'video/webm',
+            'video/webm;codecs=opus',
+            'video/webm;codecs:opus',
+            'video/webm;codecs=OPUS',
+            'video/webm;codecs:OPUS',
+            'video/webm'
+        ];
+
+        const resultsTable = document.getElementById('results');
+        const codecSelector = document.getElementById('codecSelector');
+        let testResults = [];
+
+        function checkCodecSupport(codec, index) {
+            const isSupported = MediaRecorder.isTypeSupported(codec);
+            const row = document.createElement('tr');
+            const numberCell = document.createElement('td');
+            const codecCell = document.createElement('td');
+            const supportCell = document.createElement('td');
+
+            numberCell.textContent = index + 1;
+            codecCell.textContent = codec;
+            supportCell.textContent = isSupported ? 'Yes' : 'No';
+            supportCell.style.color = isSupported ? 'green' : 'red';
+
+            row.appendChild(numberCell);
+            row.appendChild(codecCell);
+            row.appendChild(supportCell);
+            resultsTable.appendChild(row);
+
+            testResults.push({
+                number: index + 1,
+                codec: codec,
+                supported: isSupported ? 'Yes' : 'No'
+            });
+
+            if (isSupported) {
+                const option = document.createElement('option');
+                option.value = codec;
+                option.textContent = "#" + numberCell.textContent + " " + codec;
+                codecSelector.appendChild(option);
+            }
+        }
+
+        codecs.forEach((codec, index) => checkCodecSupport(codec, index));
+
+        function downloadCSV() {
+            const userAgent = navigator.userAgent;
+            const rows = [`User Agent,${userAgent}`, '#,Codec,Supported'];
+            testResults.forEach(result => {
+                rows.push(`${result.number},${result.codec},${result.supported}`);
+            });
+            const csvContent = 'data:text/csv;charset=utf-8,' + rows.join('\n');
+            const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+            const url = URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.setAttribute('href', url);
+            link.setAttribute('download', 'codec_support_results.csv');
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        }
+
+        function logResultsAsJSON() {
+            const jsonOutput = {
+                userAgent: navigator.userAgent,
+                results: testResults
+            };
+            console.log(JSON.stringify(jsonOutput, null, 2));
+        }
+
+        document.getElementById('downloadResults').addEventListener('click', () => {
+            downloadCSV();
+            logResultsAsJSON();
+        });
+
+        // Canvas Animation
+        const canvas = document.getElementById('animationCanvas');
+        const ctx = canvas.getContext('2d');
+        let x = 0;
+        let direction = 1;
+
+        function draw() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            ctx.fillStyle = 'blue';
+            ctx.fillRect(x, 50, 50, 50);
+            x += direction * 2;
+            if (x + 50 > canvas.width || x < 0) direction *= -1;
+            requestAnimationFrame(draw);
+        }
+        draw();
+
+        // MediaRecorder Test
+        let mediaRecorder;
+        let recordedChunks = [];
+
+        const startButton = document.getElementById('startRecording');
+        const stopButton = document.getElementById('stopRecording');
+
+        startButton.addEventListener('click', async () => {
+            const stream = canvas.captureStream(30); // Capture 30fps from the canvas
+            const selectedCodec = codecSelector.value;
+
+            if (!selectedCodec) {
+                alert('Please select a codec before starting recording.');
+                return;
+            }
+
+            mediaRecorder = new MediaRecorder(stream, { mimeType: selectedCodec });
+
+            mediaRecorder.ondataavailable = (event) => {
+                if (event.data.size > 0) {
+                    recordedChunks.push(event.data);
+                }
+            };
+
+            mediaRecorder.onstop = () => {
+                const blob = new Blob(recordedChunks, { type: mediaRecorder.mimeType });
+                const extension = selectedCodec.split(';')[0].split('/')[1] || 'webm';
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `recording.${extension}`;
+                a.click();
+                URL.revokeObjectURL(url);
+            };
+
+            recordedChunks = [];
+            mediaRecorder.start();
+            startButton.disabled = true;
+            stopButton.disabled = false;
+        });
+
+        stopButton.addEventListener('click', () => {
+            mediaRecorder.stop();
+            startButton.disabled = false;
+            stopButton.disabled = true;
+        });
+    </script>
+</body>
+</html>
