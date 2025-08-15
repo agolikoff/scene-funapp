@@ -2,7 +2,7 @@ const app = {};
 const SCENE_RESOLUTION = 0; // if 0 - auto
 const VERSION = '6.0';
 //app.baseURL = '//shottracker.stacqan.com:8000';
-app.baseURL = '//hype.shottracker.com/3d/api';
+app.baseURL = '//hype-dev.shottracker.com/3d/fun-api';
 
 const [
     { ScreenService },
@@ -104,9 +104,7 @@ if(app.STATIC){
     }
 }
 
-if(app.IS_EXTERNAL){
-    app.externalService.initializeFromParams();
-}
+
 
 
 
@@ -145,6 +143,8 @@ app.externalService = new ExternalService(app);
 
 if (!app.STATIC && !app.IS_EXTERNAL) {
     app.extractedData = app.localStorageService.extractDataFromLocalStorage();
+} else if (app.IS_EXTERNAL) {
+    app.externalService.initializeFromParams();
 }
 
 app.colorService.updateColors();
@@ -221,6 +221,12 @@ function hideLoadingScreen() {
 function hideLoadingScreenAfterDelay(delay) {
     setTimeout(hideLoadingScreen, delay);
 }
+
+// Export functions to global scope for use in services
+window.showLoadingScreen = showLoadingScreen;
+window.hideLoadingScreen = hideLoadingScreen;
+window.hideLoadingScreenAfterDelay = hideLoadingScreenAfterDelay;
+window.updateAllServices = updateAllServices;
 
 window.addEventListener("storage", function (event) {
     if (event.key === "air" && !app.SAVED_SCENE) {
