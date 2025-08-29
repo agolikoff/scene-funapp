@@ -89,7 +89,7 @@ async function fetchDataAndUpdateLocalStorage(id) {
             if (success) {
                 console.log(`Data updated and saved to ${storageType}`);
                 showLoadingScreen("Updating scene...");
-                updateAllServices(); 
+                await updateAllServices(); 
                 hideLoadingScreenAfterDelay(500);
                 if (!app.IS_PREVIEW) {
                     app.scene.beginAnimation(app.camera, 0, 600, true);
@@ -231,15 +231,34 @@ window.addEventListener("resize", function () {
 
 
 var loadingScreen = document.getElementById("loadingScreen");
-function updateAllServices() {
+async function updateAllServices() {
     try {
-        app.extractedData = app.localStorageService.extractDataFromLocalStorage();
-        app.dataService.loadStats();
-        app.screenService.updateScreens();
-        app.colorService.updateColors();
-        app.sceneService.applyColors();
-        app.shotService.updateMarkers();
-        console.log("Scene updated");
+        // Проверяем готовность основных компонентов
+        if (!app.scene) {
+            console.warn("Scene not loaded yet, retrying in 1 second...");
+            setTimeout(() => updateAllServices(), 1000);
+            return;
+        }
+        
+        if (!app.localStorageService) {
+            console.warn("LocalStorageService not initialized, skipping updates");
+            return;
+        }
+        
+        app.extractedData = await app.localStorageService.extractDataFromLocalStorage();
+        if (!app.extractedData) {
+            console.warn("No extracted data available, skipping scene updates");
+            return;
+        }
+        
+        // Проверяем готовность всех сервисов перед обновлением
+        if (app.dataService) app.dataService.loadStats();
+        if (app.screenService) app.screenService.updateScreens();
+        if (app.colorService) app.colorService.updateColors();
+        if (app.sceneService) app.sceneService.applyColors();
+        if (app.shotService) app.shotService.updateMarkers();
+        
+        console.log("Scene updated successfully");
         
     } catch (error) {
         console.error("Error executing one of the functions:", error);
@@ -265,11 +284,11 @@ window.hideLoadingScreen = hideLoadingScreen;
 window.hideLoadingScreenAfterDelay = hideLoadingScreenAfterDelay;
 window.updateAllServices = updateAllServices;
 
-window.addEventListener("storage", function (event) {
+window.addEventListener("storage", async function (event) {
     if (event.key === "air" && !app.SAVED_SCENE) {
-        console.log("loacalStorage changed");
+        console.log("localStorage changed");
         showLoadingScreen("Updating scene...");
-        updateAllServices(); 
+        await updateAllServices(); 
         hideLoadingScreenAfterDelay(500);
     }
 });

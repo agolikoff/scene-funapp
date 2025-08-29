@@ -244,7 +244,7 @@ export class ExternalService extends BaseService {
             }
             
             window.showLoadingScreen("Loading external data...");
-            window.updateAllServices(); 
+            await window.updateAllServices(); 
             window.hideLoadingScreenAfterDelay(500);
             
             if (!this.app.IS_PREVIEW) {
