@@ -1,15 +1,29 @@
 import {
     BaseService
 } from "./base.js";
+import { safeGetItem, getStorageType } from "../helpers/localStorage.js";
 
 export class LocalStorageService extends BaseService {    
-    extractDataFromLocalStorage() {
-        // Получаем данные из localStorage по ключу 'air'
-        const airData = JSON.parse(localStorage.getItem('air'));
-
+    async extractDataFromLocalStorage() {
+        // Получаем данные из хранилища по ключу 'air'
+        const airDataString = await safeGetItem('air');
+        const storageType = await getStorageType();
+        
+        if (!airDataString) {
+            console.error(`No data found in ${storageType} with key "air"`);
+            return null;
+        }
+        
+        let airData;
+        try {
+            airData = JSON.parse(airDataString);
+        } catch (error) {
+            console.error(`Error parsing JSON from ${storageType}:`, error);
+            return null;
+        }
 
         if (!airData) {
-            console.error('No data found in localStorage with key "air"');
+            console.error('Parsed data is null or undefined');
             return null;
         }
 

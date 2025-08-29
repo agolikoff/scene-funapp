@@ -1,6 +1,7 @@
 import {
     BaseService
 } from "./base.js";
+import { safeSetItem, getStorageType } from "../helpers/localStorage.js";
 
 export class ExternalService extends BaseService {
     
@@ -233,8 +234,14 @@ export class ExternalService extends BaseService {
             };
             
             const jsonString = JSON.stringify(combinedData);
-            window.localStorage.setItem('air', jsonString);
-            console.log('External data updated and saved to local storage', combinedData);
+            const success = await safeSetItem('air', jsonString);
+            const storageType = await getStorageType();
+            
+            if (success) {
+                console.log(`External data updated and saved to ${storageType}`, combinedData);
+            } else {
+                console.error(`Не удалось сохранить данные в ${storageType}`);
+            }
             
             window.showLoadingScreen("Loading external data...");
             window.updateAllServices(); 

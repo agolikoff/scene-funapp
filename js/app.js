@@ -70,28 +70,37 @@ if(app.SAVED_SCENE || app.IS_PREVIEW){
 }
 
 let previousStaticData = null;
-function fetchDataAndUpdateLocalStorage(id) {
+async function fetchDataAndUpdateLocalStorage(id) {
     const url = `${app.baseURL}/v2/hype/public/graphics/render/static?id=${id}`;
     
-    fetch(url)
-        .then(response => response.json())
-        .then(data => {
-            const jsonString = JSON.stringify(data);
-            if (jsonString !== previousStaticData) {
-                previousStaticData = jsonString;
-                window.localStorage.setItem('air', jsonString);
-                console.log('Data updated and saved to local storage');
+    try {
+        const response = await fetch(url);
+        const data = await response.json();
+        const jsonString = JSON.stringify(data);
+        
+        if (jsonString !== previousStaticData) {
+            previousStaticData = jsonString;
+            
+            // Импортируем функции динамически
+            const { safeSetItem, getStorageType } = await import('./helpers/localStorage.js');
+            const success = safeSetItem('air', jsonString);
+            const storageType = getStorageType();
+            
+            if (success) {
+                console.log(`Data updated and saved to ${storageType}`);
                 showLoadingScreen("Updating scene...");
                 updateAllServices(); 
                 hideLoadingScreenAfterDelay(500);
                 if (!app.IS_PREVIEW) {
                     app.scene.beginAnimation(app.camera, 0, 600, true);
                 }
+            } else {
+                console.error(`Не удалось сохранить данные в ${storageType}`);
             }
-        })
-        .catch(error => {
-            console.error('Error fetching data:', error);
-        });
+        }
+    } catch (error) {
+        console.error('Error fetching data:', error);
+    }
 }
 
 
@@ -131,34 +140,62 @@ if (!app.IS_DEV) {
     app.engine.enableOfflineSupport = true;
 }
 
-app.screenService = new ScreenService(app);
-app.segmentService = new SegmentService(app);
-app.shotService = new ShotService(app);
-app.cacheService = new CacheService(app);
-app.sceneService = new SceneService(app);
-app.dataService = new DataService(app);
-app.colorService = new ColorService(app);
-app.localStorageService = new LocalStorageService(app);
-app.externalService = new ExternalService(app);
+// Async инициализация приложения
+async function initializeApp() {
+    app.screenService = new ScreenService(app);
+    app.segmentService = new SegmentService(app);
+    app.shotService = new ShotService(app);
+    app.cacheService = new CacheService(app);
+    app.sceneService = new SceneService(app);
+    app.dataService = new DataService(app);
+    app.colorService = new ColorService(app);
+    app.localStorageService = new LocalStorageService(app);
+    app.externalService = new ExternalService(app);
 
-if (!app.STATIC && !app.IS_EXTERNAL) {
-    app.extractedData = app.localStorageService.extractDataFromLocalStorage();
-} else if (app.IS_EXTERNAL) {
-    app.externalService.initializeFromParams();
+    if (!app.STATIC && !app.IS_EXTERNAL) {
+        app.extractedData = await app.localStorageService.extractDataFromLocalStorage();
+    } else if (app.IS_EXTERNAL) {
+        app.externalService.initializeFromParams();
+    }
+
+    app.colorService.updateColors();
+
+    // Диагностическая информация о хранилище при запуске
+    if (app.IS_DEV) {
+        try {
+            const { getStorageInfo } = await import('./helpers/localStorage.js');
+            const storageInfo = await getStorageInfo();
+            console.log('Storage Diagnostic Info:', storageInfo);
+        } catch (error) {
+            console.warn('Could not load storage diagnostic info:', error);
+        }
+    }
 }
 
-app.colorService.updateColors();
+// Запускаем инициализацию
+initializeApp().catch(error => {
+    console.error('App initialization failed:', error);
+});
 
-window.addEventListener("keydown", function (event) {
+window.addEventListener("keydown", async function (event) {
     if (event.key === 'e') {
-        let base64String = btoa(localStorage.getItem('air'));
-        let urlWithoutParams = `${window.location.protocol}//${window.location.hostname}${window.location.port ? `:${window.location.port}` : ''}${window.location.pathname}`;
-        let urlFull = urlWithoutParams + '?scene=' + base64String;
-        prompt("Export url", urlFull);
-        if (navigator.clipboard && navigator.clipboard.writeText) {
-        navigator.clipboard.writeText(urlFull);
+        // Импортируем функции динамически для избежания зависимостей
+        const { safeGetItem, getStorageType } = await import('./helpers/localStorage.js');
+        const airData = safeGetItem('air');
+        const storageType = getStorageType();
+        
+        if (airData) {
+            let base64String = btoa(airData);
+            let urlWithoutParams = `${window.location.protocol}//${window.location.hostname}${window.location.port ? `:${window.location.port}` : ''}${window.location.pathname}`;
+            let urlFull = urlWithoutParams + '?scene=' + base64String;
+            prompt("Export url", urlFull);
+            if (navigator.clipboard && navigator.clipboard.writeText) {
+                navigator.clipboard.writeText(urlFull);
+            }
+            console.log(`Export URL created from ${storageType}:`, urlFull);
+        } else {
+            console.error(`Не удалось получить данные из ${storageType} для экспорта`);
         }
-        console.log(urlFull);
     }
 });
 

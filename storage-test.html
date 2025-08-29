@@ -1,0 +1,324 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Storage Fallback Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .test-section {
+            margin: 20px 0;
+            padding: 15px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+        }
+        .result {
+            margin: 10px 0;
+            padding: 10px;
+            border-radius: 3px;
+        }
+        .success { background-color: #d4edda; color: #155724; }
+        .warning { background-color: #fff3cd; color: #856404; }
+        .error { background-color: #f8d7da; color: #721c24; }
+        button {
+            padding: 8px 16px;
+            margin: 5px;
+            cursor: pointer;
+        }
+        #info {
+            background-color: #f8f9fa;
+            padding: 15px;
+            border-radius: 5px;
+            margin-bottom: 20px;
+        }
+    </style>
+</head>
+<body>
+    <h1>🗂️ Storage Fallback System Test</h1>
+    
+    <div id="info">
+        <h3>Diagnostic Information</h3>
+        <div id="diagnostic-info">Loading...</div>
+    </div>
+
+    <div class="test-section">
+        <h3>📝 Write and Read Testing</h3>
+        <button onclick="testBasicOperations()">Test Basic Operations</button>
+        <div id="basic-test-results"></div>
+    </div>
+
+    <div class="test-section">
+        <h3>🗄️ IndexedDB Fallback Test</h3>
+        <p>This test temporarily disables localStorage to verify fallback to IndexedDB</p>
+        <button onclick="testLocalStorageFallback()">Test IndexedDB Fallback</button>
+        <div id="fallback-test-results"></div>
+    </div>
+
+    <div class="test-section">
+        <h3>🔄 sessionStorage Fallback Test</h3>
+        <p>This test temporarily disables localStorage and IndexedDB to verify fallback to sessionStorage</p>
+        <button onclick="testSessionStorageFallback()">Test sessionStorage Fallback</button>
+        <div id="session-test-results"></div>
+    </div>
+
+    <div class="test-section">
+        <h3>⚠️ Complete Storage Unavailability Simulation</h3>
+        <p>This test temporarily disables both storages to verify fallback to memory</p>
+        <button onclick="testMemoryFallback()">Test Memory Fallback</button>
+        <div id="memory-test-results"></div>
+    </div>
+
+    <script type="module">
+        import { 
+            safeSetItem, 
+            safeGetItem, 
+            safeRemoveItem,
+            getStorageType, 
+            getStorageInfo,
+            isLocalStorageAvailable,
+            isSessionStorageAvailable,
+            isIndexedDBAvailable
+        } from './js/helpers/localStorage.js';
+
+        // Делаем функции доступными глобально для кнопок
+        window.safeSetItem = safeSetItem;
+        window.safeGetItem = safeGetItem;
+        window.safeRemoveItem = safeRemoveItem;
+        window.getStorageType = getStorageType;
+        window.getStorageInfo = getStorageInfo;
+        window.isLocalStorageAvailable = isLocalStorageAvailable;
+        window.isSessionStorageAvailable = isSessionStorageAvailable;
+        window.isIndexedDBAvailable = isIndexedDBAvailable;
+
+        // Show diagnostic information on load
+        async function showDiagnosticInfo() {
+            const info = await getStorageInfo();
+            document.getElementById('diagnostic-info').innerHTML = `
+                <strong>localStorage:</strong> ${info.localStorage.exists ? '✅ Exists' : '❌ Does not exist'} | 
+                ${info.localStorage.available ? '✅ Available' : '❌ Unavailable'}<br>
+                <strong>IndexedDB:</strong> ${info.indexedDB.exists ? '✅ Exists' : '❌ Does not exist'} | 
+                ${info.indexedDB.available ? '✅ Available' : '❌ Unavailable'}<br>
+                <strong>sessionStorage:</strong> ${info.sessionStorage.exists ? '✅ Exists' : '❌ Does not exist'} | 
+                ${info.sessionStorage.available ? '✅ Available' : '❌ Unavailable'}<br>
+                <strong>Current storage:</strong> <em>${info.currentStorage}</em>
+            `;
+        }
+
+        showDiagnosticInfo();
+
+        // Test basic operations
+        window.testBasicOperations = async function() {
+            const resultsDiv = document.getElementById('basic-test-results');
+            resultsDiv.innerHTML = '<div class="result warning">🔄 Testing...</div>';
+
+            const testKey = 'test-key';
+            const testValue = 'test-value-' + Date.now();
+
+            try {
+                // Write test
+                const writeSuccess = await safeSetItem(testKey, testValue);
+                const storageType = await getStorageType();
+                
+                resultsDiv.innerHTML = `<div class="result ${writeSuccess ? 'success' : 'error'}">
+                    📝 Write: ${writeSuccess ? '✅ Success' : '❌ Error'} (${storageType})
+                </div>`;
+
+                // Read test
+                const readValue = await safeGetItem(testKey);
+                const readSuccess = readValue === testValue;
+                
+                resultsDiv.innerHTML += `<div class="result ${readSuccess ? 'success' : 'error'}">
+                    📖 Read: ${readSuccess ? '✅ Success' : '❌ Error'} (received: "${readValue}")
+                </div>`;
+
+                // Remove test
+                const removeSuccess = await safeRemoveItem(testKey);
+                const checkRemoval = await safeGetItem(testKey) === null;
+                
+                resultsDiv.innerHTML += `<div class="result ${removeSuccess && checkRemoval ? 'success' : 'error'}">
+                    🗑️ Remove: ${removeSuccess && checkRemoval ? '✅ Success' : '❌ Error'}
+                </div>`;
+
+            } catch (error) {
+                resultsDiv.innerHTML += `<div class="result error">❌ Error: ${error.message}</div>`;
+            }
+        };
+
+        // Test IndexedDB fallback (localStorage disabled)
+        window.testLocalStorageFallback = async function() {
+            const resultsDiv = document.getElementById('fallback-test-results');
+            resultsDiv.innerHTML = '<div class="result warning">🔄 Testing IndexedDB fallback...</div>';
+
+            // Save original localStorage
+            const originalLocalStorage = window.localStorage;
+            
+            try {
+                // Temporarily disable localStorage
+                Object.defineProperty(window, 'localStorage', {
+                    value: null,
+                    writable: true
+                });
+
+                resultsDiv.innerHTML = `<div class="result warning">⚠️ localStorage temporarily disabled</div>`;
+
+                const testKey = 'indexeddb-fallback-test';
+                const testValue = 'indexedDB-fallback-' + Date.now();
+
+                // Test operations
+                const writeSuccess = await safeSetItem(testKey, testValue);
+                const storageType = await getStorageType();
+                
+                resultsDiv.innerHTML += `<div class="result ${writeSuccess ? 'success' : 'error'}">
+                    📝 Write to fallback: ${writeSuccess ? '✅ Success' : '❌ Error'} (${storageType})
+                </div>`;
+
+                const readValue = await safeGetItem(testKey);
+                const readSuccess = readValue === testValue;
+                
+                resultsDiv.innerHTML += `<div class="result ${readSuccess ? 'success' : 'error'}">
+                    📖 Read from fallback: ${readSuccess ? '✅ Success' : '❌ Error'} (${storageType})
+                </div>`;
+
+                // Cleanup
+                await safeRemoveItem(testKey);
+
+            } finally {
+                // Restore localStorage
+                Object.defineProperty(window, 'localStorage', {
+                    value: originalLocalStorage,
+                    writable: true
+                });
+                resultsDiv.innerHTML += `<div class="result success">✅ localStorage restored</div>`;
+            }
+        };
+
+        // Test sessionStorage fallback (localStorage and IndexedDB disabled)
+        window.testSessionStorageFallback = async function() {
+            const resultsDiv = document.getElementById('session-test-results');
+            resultsDiv.innerHTML = '<div class="result warning">🔄 Testing sessionStorage fallback...</div>';
+
+            // Save original storages
+            const originalLocalStorage = window.localStorage;
+            const originalIndexedDB = window.indexedDB;
+            
+            try {
+                // Temporarily disable localStorage and IndexedDB
+                Object.defineProperty(window, 'localStorage', {
+                    value: null,
+                    writable: true
+                });
+                Object.defineProperty(window, 'indexedDB', {
+                    value: null,
+                    writable: true
+                });
+
+                resultsDiv.innerHTML = `<div class="result warning">⚠️ localStorage and IndexedDB temporarily disabled</div>`;
+
+                const testKey = 'session-fallback-test';
+                const testValue = 'sessionStorage-fallback-' + Date.now();
+
+                // Test operations
+                const writeSuccess = await safeSetItem(testKey, testValue);
+                const storageType = await getStorageType();
+                
+                resultsDiv.innerHTML += `<div class="result ${writeSuccess ? 'success' : 'error'}">
+                    📝 Write to fallback: ${writeSuccess ? '✅ Success' : '❌ Error'} (${storageType})
+                </div>`;
+
+                const readValue = await safeGetItem(testKey);
+                const readSuccess = readValue === testValue;
+                
+                resultsDiv.innerHTML += `<div class="result ${readSuccess ? 'success' : 'error'}">
+                    📖 Read from fallback: ${readSuccess ? '✅ Success' : '❌ Error'} (${storageType})
+                </div>`;
+
+                // Cleanup
+                await safeRemoveItem(testKey);
+
+            } finally {
+                // Restore storages
+                Object.defineProperty(window, 'localStorage', {
+                    value: originalLocalStorage,
+                    writable: true
+                });
+                Object.defineProperty(window, 'indexedDB', {
+                    value: originalIndexedDB,
+                    writable: true
+                });
+                resultsDiv.innerHTML += `<div class="result success">✅ Storages restored</div>`;
+            }
+        };
+
+        // Test memory fallback (all storages disabled)
+        window.testMemoryFallback = async function() {
+            const resultsDiv = document.getElementById('memory-test-results');
+            resultsDiv.innerHTML = '<div class="result warning">🔄 Testing memory fallback...</div>';
+
+            // Save original storages
+            const originalLocalStorage = window.localStorage;
+            const originalSessionStorage = window.sessionStorage;
+            const originalIndexedDB = window.indexedDB;
+            
+            try {
+                // Temporarily disable all storages
+                Object.defineProperty(window, 'localStorage', {
+                    value: null,
+                    writable: true
+                });
+                Object.defineProperty(window, 'sessionStorage', {
+                    value: null,
+                    writable: true
+                });
+                Object.defineProperty(window, 'indexedDB', {
+                    value: null,
+                    writable: true
+                });
+
+                resultsDiv.innerHTML = `<div class="result warning">⚠️ All storages temporarily disabled</div>`;
+
+                const testKey = 'memory-test';
+                const testValue = 'memory-fallback-' + Date.now();
+
+                // Test operations
+                const writeSuccess = await safeSetItem(testKey, testValue);
+                const storageType = await getStorageType();
+                
+                resultsDiv.innerHTML += `<div class="result ${writeSuccess ? 'success' : 'error'}">
+                    📝 Write to memory: ${writeSuccess ? '✅ Success' : '❌ Error'} (${storageType})
+                </div>`;
+
+                const readValue = await safeGetItem(testKey);
+                const readSuccess = readValue === testValue;
+                
+                resultsDiv.innerHTML += `<div class="result ${readSuccess ? 'success' : 'error'}">
+                    📖 Read from memory: ${readSuccess ? '✅ Success' : '❌ Error'} (${storageType})
+                </div>`;
+
+                // Cleanup
+                await safeRemoveItem(testKey);
+
+            } finally {
+                // Restore storages
+                Object.defineProperty(window, 'localStorage', {
+                    value: originalLocalStorage,
+                    writable: true
+                });
+                Object.defineProperty(window, 'sessionStorage', {
+                    value: originalSessionStorage,
+                    writable: true
+                });
+                Object.defineProperty(window, 'indexedDB', {
+                    value: originalIndexedDB,
+                    writable: true
+                });
+                resultsDiv.innerHTML += `<div class="result success">✅ All storages restored</div>`;
+            }
+        };
+    </script>
+</body>
+</html>
