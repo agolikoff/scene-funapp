@@ -90,6 +90,14 @@ export class ExternalService extends BaseService {
     }
 
     /**
+     * Get sponsor image URL from sponsor data
+     */
+    getSponsorImageUrl(teamId, sponsorId, filePath) {
+        if (!sponsorId || !filePath) return null;
+        return `${this.app.baseURL}/v2/team/public/${teamId}/sponsor/graphics/stream?sponsorId=${sponsorId}&filePath=${filePath}`;
+    }
+
+    /**
      * Fetch external data and update localStorage (similar to static mode)
      */
     async fetchExternalDataAndUpdateLocalStorage(gameId, teamId, playerId = null) {
@@ -106,49 +114,69 @@ export class ExternalService extends BaseService {
             // Parse scene objects - API returns { data: { sceneObjects: [...] } }
             const sceneSettings = this.parseSceneObjects(sceneData.data?.sceneObjects);
             
-            // Fetch all images (team and players)
+            // Process sponsor data from sceneData.data.teamSponsors
+            const sponsorData = {};
+            if (sceneData.data?.teamSponsors && Array.isArray(sceneData.data.teamSponsors)) {
+                sceneData.data.teamSponsors.forEach(sponsor => {
+                    if (sponsor.graphics && Array.isArray(sponsor.graphics)) {
+                        sponsor.graphics.forEach(graphic => {
+                            // Map by graphic name (TUNNEL, WALL, etc.)
+                            sponsorData[graphic.graphicName] = {
+                                sponsorId: sponsor.id,
+                                sponsorName: sponsor.sponsorName,
+                                filePath: graphic.graphicPathFilename,
+                                url: this.getSponsorImageUrl(teamId, sponsor.id, graphic.graphicPathFilename)
+                            };
+                        });
+                    }
+                });
+            }
+            
+            // Process images from scene data (now included in main request)
             let teamImages = {};
             let allPlayerImages = {}; // Group by playerId
             let currentPlayerImages = {}; // Images for the current playerId
             
             try {
-                const imagesUrl = `${this.app.baseURL}/v2/hype/public/graphics/scene/images?teamId=${teamId}`;
-                const imagesResponse = await fetch(imagesUrl);
-                if (imagesResponse.ok) {
-                    const imagesData = await imagesResponse.json();
-                    if (imagesData.data && Array.isArray(imagesData.data)) {
-                        imagesData.data.forEach(img => {
-                            const imageUrl = this.getImageUrl(img.imagePath);
-                            
-                            if (!img.playerId) {
-                                // Team images (playerId is null)
-                                teamImages[img.imageType] = imageUrl;
-                            } else {
-                                // Player images - group by playerId
-                                if (!allPlayerImages[img.playerId]) {
-                                    allPlayerImages[img.playerId] = {};
-                                }
-                                allPlayerImages[img.playerId][img.imageType] = imageUrl;
-                                
-                                // If this is the current player, also add to currentPlayerImages
-                                if (playerId && img.playerId == playerId) {
-                                    currentPlayerImages[img.imageType] = imageUrl;
-                                }
+                // Images now come from sceneData.data.images instead of separate request
+                if (sceneData.data?.images && Array.isArray(sceneData.data.images)) {
+                    sceneData.data.images.forEach(img => {
+                        const imageUrl = this.getImageUrl(img.imagePath);
+                        
+                        if (!img.playerId) {
+                            // Team images (playerId is null)
+                            teamImages[img.imageType] = imageUrl;
+                        } else {
+                            // Player images - group by playerId
+                            if (!allPlayerImages[img.playerId]) {
+                                allPlayerImages[img.playerId] = {};
                             }
-                        });
-                    }
+                            allPlayerImages[img.playerId][img.imageType] = imageUrl;
+                            
+                            // If this is the current player, also add to currentPlayerImages
+                            if (playerId && img.playerId == playerId) {
+                                currentPlayerImages[img.imageType] = imageUrl;
+                            }
+                        }
+                    });
                 }
             } catch (error) {
-                console.warn('Error fetching images:', error);
+                console.warn('Error processing images from scene data:', error);
             }
             
-            // Helper function to create sponsor image object
+            // Helper function to create sponsor image object using real sponsor data
             const createSponsorImageObject = (setting, imageId, graphicType) => {
-                if (setting === 'Sponsor' && imageId) {
-                    return {
-                        sponsorId: imageId,
-                        graphicPathFilename: `teamsponsor/187665/${teamId}/${graphicType}` // This would need to be dynamic based on actual sponsor data
-                    };
+                if (setting === 'Sponsor') {
+                    // Look for sponsor data by graphicType (WALL, TUNNEL, etc.)
+                    const sponsor = sponsorData[graphicType];
+                    if (sponsor) {
+                        return {
+                            sponsorId: sponsor.sponsorId,
+                            sponsorName: sponsor.sponsorName,
+                            graphicPathFilename: sponsor.filePath,
+                            url: sponsor.url
+                        };
+                    }
                 }
                 return null;
             };
@@ -229,7 +257,8 @@ export class ExternalService extends BaseService {
                 _meta: {
                     allPlayerImages: allPlayerImages,
                     teamImages: teamImages,
-                    sceneSettings: sceneSettings
+                    sceneSettings: sceneSettings,
+                    sponsorData: sponsorData
                 }
             };
             
@@ -257,8 +286,7 @@ export class ExternalService extends BaseService {
                 gameId,
                 teamId,
                 playerId,
-                sceneUrl: `${this.app.baseURL}/v2/hype/public/graphics/team/externalfan/scene?teamId=${teamId}`,
-                imagesUrl: `${this.app.baseURL}/v2/hype/public/graphics/scene/images?teamId=${teamId}`
+                sceneUrl: `${this.app.baseURL}/v2/hype/public/graphics/team/externalfan/scene?teamId=${teamId}`
             });
         }
     }
