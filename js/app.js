@@ -1,6 +1,6 @@
 const app = {};
 const SCENE_RESOLUTION = 0; // if 0 - auto
-const VERSION = '6.0';
+const VERSION = '6.5';
 //app.baseURL = '//shottracker.stacqan.com:8000';
 app.baseURL = '//hype-dev.shottracker.com/3d/fun-api';
 
@@ -234,7 +234,7 @@ var loadingScreen = document.getElementById("loadingScreen");
 async function updateAllServices() {
     try {
         // Проверяем готовность основных компонентов
-        if (!app.scene) {
+        if (!app.scene || !app.runtime.loaded) {
             console.warn("Scene not loaded yet, retrying in 1 second...");
             setTimeout(() => updateAllServices(), 1000);
             return;

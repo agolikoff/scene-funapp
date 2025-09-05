@@ -238,7 +238,7 @@ export class ExternalService extends BaseService {
                 selectedUpperSponsorImage: createSponsorImageObject(sceneSettings.upperWallSetting, sceneSettings.upperWallImageId, "WALL"),
                 selectedLowerSponsorImage: createSponsorImageObject(sceneSettings.lowerWallSetting, sceneSettings.lowerWallImageId, "WALL"), 
                 selectedHoopStanchionSponsorImage: createSponsorImageObject(sceneSettings.hoopSetting, sceneSettings.hoopImageId, "WALL"),
-                selectedCenterCourtSponsorImage: sceneSettings.centerCourt || "No",
+                selectedCenterCourtSponsorImage: createSponsorImageObject(sceneSettings.centerCourt, sceneSettings.hoopImageId, "WALL"),
                 selectedLeftTunnelSponsorImage: createSponsorImageObject(sceneSettings.leftTunnelSetting, sceneSettings.leftTunnelImageId, "TUNNEL"),
                 selectedRightTunnelSponsorImage: createSponsorImageObject(sceneSettings.rightTunnelSetting, sceneSettings.rightTunnelImageId, "TUNNEL"),
                 
@@ -251,7 +251,7 @@ export class ExternalService extends BaseService {
                 // Screen content - Player images take priority, then team images, then TEAM_LOGO as fallback
                 screensLeft: currentPlayerImages.PLAYER_LEFT || teamImages.TEAM_LEFT || teamImages.TEAM_LOGO,
                 screensCenter: currentPlayerImages.PLAYER_CENTER || teamImages.TEAM_CENTER || teamImages.TEAM_LOGO,
-                screensRight: currentPlayerImages.PLAYER_RIGHT || teamImages.TEAM_RIGHT || teamImages.TEAM_LOGO,
+                screensRight: currentPlayerImages.PLAYER_LEFT || teamImages.TEAM_LEFT || teamImages.TEAM_LOGO,
                 
                 // Additional data for reference (not in original airData structure)
                 _meta: {
@@ -276,7 +276,7 @@ export class ExternalService extends BaseService {
             await window.updateAllServices(); 
             window.hideLoadingScreenAfterDelay(500);
             
-            if (!this.app.IS_PREVIEW) {
+            if (!this.app.IS_PREVIEW && this.app.runtime.loaded) {
                 this.app.scene.beginAnimation(this.app.camera, 0, 600, true);
             }
             
