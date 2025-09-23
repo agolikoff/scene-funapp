@@ -1,24 +1,49 @@
 import {
     BaseService
 } from "./base.js";
+import { getCameraConfigAuto } from "../config/camera/index.js";
 
 export class SceneService extends BaseService {
-    setUpScene() {
+    async setUpScene() {
 
         BABYLON.ScenePerformancePriority.Aggressive = 2;
-        // Create and position a free camera 
-        this.app.camera = new BABYLON.ArcRotateCamera("camera1", 10, 10, 10, BABYLON.Vector3(-8.5, 0, 0.8), this.app.scene);
-        this.app.camera.minZ = 0.5;
-        this.app.camera.maxZ = 100;
+        // Create and position a free camera using config
+        const cameraConfig = await getCameraConfigAuto(this.app.deviceService);
+        const config = cameraConfig.initial;
+        this.app.camera = new BABYLON.ArcRotateCamera(
+            config.name, 
+            config.alpha, 
+            config.beta, 
+            config.radius, 
+            new BABYLON.Vector3(config.target.x, config.target.y, config.target.z), 
+            this.app.scene
+        );
+        this.app.camera.minZ = config.minZ;
+        this.app.camera.maxZ = config.maxZ;
 
         if (this.app.IS_DEV) {
-            this.app.camera.setPosition(new BABYLON.Vector3(13.4, 9.3, 0));
-            this.app.camera.setTarget(new BABYLON.Vector3(-9, 0.6, 0));
+            const devConfig = cameraConfig.dev;
+            this.app.camera.setPosition(new BABYLON.Vector3(devConfig.position.x, devConfig.position.y, devConfig.position.z));
+            this.app.camera.setTarget(new BABYLON.Vector3(devConfig.target.x, devConfig.target.y, devConfig.target.z));
             this.app.camera.attachControl(this.app.canvas, true);
         }
         if (this.app.IS_PREVIEW) {
-            this.app.camera.setPosition(new BABYLON.Vector3(13.4, 9.3, 0));
-            this.app.camera.setTarget(new BABYLON.Vector3(-9, 1.5, 0));
+            const previewConfig = cameraConfig.preview;
+            this.app.camera.setPosition(new BABYLON.Vector3(previewConfig.position.x, previewConfig.position.y, previewConfig.position.z));
+            this.app.camera.setTarget(new BABYLON.Vector3(previewConfig.target.x, previewConfig.target.y, previewConfig.target.z));
+        }
+
+        // Применяем настройки камеры в зависимости от ориентации (если DeviceService доступен)
+        if (this.app.deviceService && !this.app.IS_DEV && !this.app.IS_PREVIEW) {
+            this.applyCameraOrientationConfig();
+        }
+
+        // Устанавливаем поле зрения камеры из конфигурации
+        if (config.fov !== undefined) {
+            this.app.camera.fov = BABYLON.Tools.ToRadians(config.fov);
+        } else {
+            // Фоллбэк на значение по умолчанию
+            this.app.camera.fov = BABYLON.Tools.ToRadians(45);
         }
 
         // Create a basic light, aiming 0, 1, 0 - meaning, to the sky
@@ -32,41 +57,29 @@ export class SceneService extends BaseService {
 
         // Load the GLTF model
         BABYLON.SceneLoader.Append("./", "scene.glb" + (this.app.IS_DEV ? "?time=" + (new Date()).getTime() : ""), this.app.scene,
-            () => {
+            async () => {
                 this.app.runtime.loaded = true;
 
                 if (!this.app.IS_DEV) {
                     // Do something with the scene after loading
-                    const animation = new BABYLON.Animation("cameraAnimation", "position", 30,
-                        BABYLON.Animation.ANIMATIONTYPE_VECTOR3, BABYLON.Animation.ANIMATIONLOOPMODE_CYCLE);
+                    // Получаем конфиг анимации в зависимости от ориентации
+                    const currentCameraConfig = await getCameraConfigAuto(this.app.deviceService);
+                    const animConfig = currentCameraConfig.animation;
+                    
+                    // Create position animation
+                    const animation = new BABYLON.Animation(
+                        "cameraAnimation", 
+                        "position", 
+                        animConfig.fps,
+                        BABYLON.Animation.ANIMATIONTYPE_VECTOR3, 
+                        BABYLON.Animation.ANIMATIONLOOPMODE_CYCLE
+                    );
 
-                    // Animation keys
-                    const keys = [];
-                    keys.push({
-                        frame: 0,
-                        //value: new BABYLON.Vector3(1.9, 3.6, 9.8) // Starting position
-                        value: new BABYLON.Vector3(10, 3.5, 10) // Starting position
-                    });
-                    keys.push({
-                        frame: 150,
-                        //value: new BABYLON.Vector3(1.9, 3.6, 9.8) // Starting position
-                        value: new BABYLON.Vector3(10, 8, 0) // Starting position
-                    });
-                    keys.push({
-                        frame: 300,
-                        //value: new BABYLON.Vector3(1.6, 10.3, 2) // Ending position
-                        value: new BABYLON.Vector3(10, 3.5, -10) // Ending position
-                    });
-                    keys.push({
-                        frame: 450,
-                        //value: new BABYLON.Vector3(1.9, 3.6, 9.8) // Starting position
-                        value: new BABYLON.Vector3(10, 8, 0) // Starting position
-                    });
-                    keys.push({
-                        frame: 600,
-                        //value: new BABYLON.Vector3(1.6, 10.3, 2) // Ending position
-                        value: new BABYLON.Vector3(10, 3.5, 10) // Starting position
-                    });
+                    // Animation keys from config
+                    const keys = animConfig.positionKeys.map(key => ({
+                        frame: key.frame,
+                        value: new BABYLON.Vector3(key.position.x, key.position.y, key.position.z)
+                    }));
 
                     animation.setKeys(keys);
 
@@ -74,23 +87,19 @@ export class SceneService extends BaseService {
                     this.app.camera.animations.push(animation);
 
                     // Create an animation for the camera's target
-                    const targetAnimation = new BABYLON.Animation("cameraTargetAnimation", "target", 30,
-                        BABYLON.Animation.ANIMATIONTYPE_VECTOR3, BABYLON.Animation.ANIMATIONLOOPMODE_CYCLE);
+                    const targetAnimation = new BABYLON.Animation(
+                        "cameraTargetAnimation", 
+                        "target", 
+                        animConfig.fps,
+                        BABYLON.Animation.ANIMATIONTYPE_VECTOR3, 
+                        BABYLON.Animation.ANIMATIONLOOPMODE_CYCLE
+                    );
 
-                    const targetKeys = [];
-                    targetKeys.push({
-                        frame: 0,
-                        value: new BABYLON.Vector3(-8.5, 0, 0.8) // Starting target
-                    });
-                    targetKeys.push({
-                        frame: 300,
-                        value: new BABYLON.Vector3(-7, 0, 0.8) // Ending target
-                    });
-                    targetKeys.push({
-                        frame: 600,
-                        value: new BABYLON.Vector3(-8.5, 0, 0.8) // Starting target
-                    });
-
+                    // Target animation keys from config
+                    const targetKeys = animConfig.targetKeys.map(key => ({
+                        frame: key.frame,
+                        value: new BABYLON.Vector3(key.target.x, key.target.y, key.target.z)
+                    }));
 
                     targetAnimation.setKeys(targetKeys);
 
@@ -99,7 +108,12 @@ export class SceneService extends BaseService {
 
                     // Run the animation
                     if (!this.app.IS_PREVIEW) {
-                        this.app.scene.beginAnimation(this.app.camera, 0, 600, true);
+                        this.app.scene.beginAnimation(
+                            this.app.camera, 
+                            animConfig.fromFrame, 
+                            animConfig.toFrame, 
+                            true
+                        );
                     }
                 }
 
@@ -184,5 +198,108 @@ export class SceneService extends BaseService {
         this.app.scene.getMeshByName('seats').material.albedoColor = BABYLON.Color3.FromHexString(this.app.supportColor1).toLinearSpace();
         this.app.scene.getMeshByName('blue_wall').material.albedoColor = BABYLON.Color3.FromHexString(this.app.supportColor2).toLinearSpace();
 
+    }
+
+    /**
+     * Применение конфигурации камеры в зависимости от ориентации
+     */
+    async applyCameraOrientationConfig() {
+        if (!this.app.deviceService) return;
+
+        const orientation = this.app.deviceService.getScreenOrientation();
+        const cameraConfig = await getCameraConfigAuto(this.app.deviceService);
+        
+        // Используем конфигурацию для текущей ориентации
+        const config = orientation === 'portrait' ? cameraConfig.portrait : cameraConfig.landscape;
+
+        if (config && config.position) {
+            this.app.camera.setPosition(new BABYLON.Vector3(
+                config.position.x,
+                config.position.y,
+                config.position.z
+            ));
+        }
+
+        if (config && config.target) {
+            this.app.camera.setTarget(new BABYLON.Vector3(
+                config.target.x,
+                config.target.y,
+                config.target.z
+            ));
+        }
+
+        // Применяем FOV из конфигурации
+        if (cameraConfig.initial && cameraConfig.initial.fov !== undefined) {
+            this.app.camera.fov = BABYLON.Tools.ToRadians(cameraConfig.initial.fov);
+        }
+
+        // Логируем применение конфигурации в режиме разработки
+        if (this.app.IS_DEV) {
+            console.log(`Applied camera config for ${orientation} orientation:`, config);
+            console.log(`Applied FOV: ${cameraConfig.initial?.fov || 'default'} degrees`);
+        }
+    }
+
+    /**
+     * Обновление анимации камеры при изменении ориентации
+     */
+    async updateCameraAnimationForOrientation() {
+        if (!this.app.deviceService || !this.app.camera || !this.app.camera.animations) return;
+
+        const orientation = this.app.deviceService.getScreenOrientation();
+        const cameraConfig = await getCameraConfigAuto(this.app.deviceService);
+        const animConfig = cameraConfig.animation;
+
+        // Очищаем существующие анимации
+        this.app.camera.animations = [];
+
+        // Создаем новую анимацию позиции
+        const animation = new BABYLON.Animation(
+            "cameraAnimation", 
+            "position", 
+            animConfig.fps,
+            BABYLON.Animation.ANIMATIONTYPE_VECTOR3, 
+            BABYLON.Animation.ANIMATIONLOOPMODE_CYCLE
+        );
+
+        const keys = animConfig.positionKeys.map(key => ({
+            frame: key.frame,
+            value: new BABYLON.Vector3(key.position.x, key.position.y, key.position.z)
+        }));
+
+        animation.setKeys(keys);
+        this.app.camera.animations.push(animation);
+
+        // Создаем новую анимацию цели
+        const targetAnimation = new BABYLON.Animation(
+            "cameraTargetAnimation", 
+            "target", 
+            animConfig.fps,
+            BABYLON.Animation.ANIMATIONTYPE_VECTOR3, 
+            BABYLON.Animation.ANIMATIONLOOPMODE_CYCLE
+        );
+
+        const targetKeys = animConfig.targetKeys.map(key => ({
+            frame: key.frame,
+            value: new BABYLON.Vector3(key.target.x, key.target.y, key.target.z)
+        }));
+
+        targetAnimation.setKeys(targetKeys);
+        this.app.camera.animations.push(targetAnimation);
+
+        // Запускаем анимацию если не в режиме предварительного просмотра
+        if (!this.app.IS_PREVIEW) {
+            this.app.scene.beginAnimation(
+                this.app.camera, 
+                animConfig.fromFrame, 
+                animConfig.toFrame, 
+                true
+            );
+        }
+
+        // Логируем обновление анимации в режиме разработки
+        if (this.app.IS_DEV) {
+            console.log(`Updated camera animation for ${orientation} orientation`);
+        }
     }
 }

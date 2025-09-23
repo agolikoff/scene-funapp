@@ -13,7 +13,8 @@ const [
     { CacheService },
     { DataService },
     { ColorService },
-    { ExternalService }
+    { ExternalService },
+    { DeviceService }
 ] = await Promise.all([
     import(`./services/screen.js?v=${VERSION}`),
     import(`./services/segment.js?v=${VERSION}`),
@@ -24,7 +25,11 @@ const [
     import(`./services/data.js?v=${VERSION}`),
     import(`./services/color.js?v=${VERSION}`),
     import(`./services/external.js?v=${VERSION}`),
+    import(`./services/device.js?v=${VERSION}`),
 ]);
+
+// Import camera configuration
+const { getCameraConfigAuto } = await import(`./config/camera/index.js?v=${VERSION}`);
 
 // Retrieve data from LocalStorage
 
@@ -92,7 +97,10 @@ async function fetchDataAndUpdateLocalStorage(id) {
                 await updateAllServices(); 
                 hideLoadingScreenAfterDelay(500);
                 if (!app.IS_PREVIEW) {
-                    app.scene.beginAnimation(app.camera, 0, 600, true);
+                    // Получаем конфиг анимации в зависимости от ориентации
+                    const cameraConfig = await getCameraConfigAuto(app.deviceService);
+                    const animConfig = cameraConfig.animation;
+                    app.scene.beginAnimation(app.camera, animConfig.fromFrame, animConfig.toFrame, true);
                 }
             } else {
                 console.error(`Не удалось сохранить данные в ${storageType}`);
@@ -142,6 +150,7 @@ if (!app.IS_DEV) {
 
 // Async инициализация приложения
 async function initializeApp() {
+    app.deviceService = new DeviceService(app);
     app.screenService = new ScreenService(app);
     app.segmentService = new SegmentService(app);
     app.shotService = new ShotService(app);
@@ -160,7 +169,21 @@ async function initializeApp() {
 
     app.colorService.updateColors();
 
-    // Диагностическая информация о хранилище при запуске
+    // Обработчик изменений устройства
+    app.onDeviceChange = async (deviceInfo) => {
+        console.log('Device changed, updating scene if needed:', deviceInfo);
+        
+        // Обновляем конфигурацию камеры при изменении ориентации
+        if (app.sceneService && app.camera && app.runtime.loaded) {
+            // Применяем новую конфигурацию камеры
+            await app.sceneService.applyCameraOrientationConfig();
+            
+            // Обновляем анимацию камеры
+            await app.sceneService.updateCameraAnimationForOrientation();
+        }
+    };
+
+    // Диагностическая информация о хранилище и устройстве при запуске
     if (app.IS_DEV) {
         try {
             const { getStorageInfo } = await import('./helpers/localStorage.js');
@@ -168,6 +191,33 @@ async function initializeApp() {
             console.log('Storage Diagnostic Info:', storageInfo);
         } catch (error) {
             console.warn('Could not load storage diagnostic info:', error);
+        }
+        
+        // Логируем информацию об устройстве
+        console.log('Device Summary:', app.deviceService.getDeviceSummary());
+        console.log('Device Config:', app.deviceService.getDeviceConfig());
+        console.log('Camera Config:', app.deviceService.getCameraConfig());
+        console.log('UI Config:', app.deviceService.getUIConfig());
+        console.log('Performance Config:', app.deviceService.getPerformanceConfig());
+        console.log('Supported Features:', {
+            touch: app.deviceService.isFeatureSupported('touch'),
+            webgl: app.deviceService.isFeatureSupported('webgl'),
+            webgl2: app.deviceService.isFeatureSupported('webgl2'),
+            fullscreen: app.deviceService.isFeatureSupported('fullscreen'),
+            vibration: app.deviceService.isFeatureSupported('vibration')
+        });
+        
+        // Логируем информацию о конфигурации камеры
+        try {
+            const { CameraConfigUtils } = await import(`./config/camera/index.js?v=${VERSION}`);
+            const cameraParam = CameraConfigUtils.getUrlParameter();
+            if (cameraParam) {
+                console.log('Camera config from URL parameter:', cameraParam);
+            } else {
+                console.log('Camera config: auto-detected from device orientation');
+            }
+        } catch (error) {
+            console.warn('Could not load camera config utils:', error);
         }
     }
 }
@@ -295,6 +345,7 @@ window.addEventListener("storage", async function (event) {
 
 if (app.IS_DEV) {
     window.app = app;
+    window.deviceService = app.deviceService; // Глобальный доступ для отладки
     app.scene.debugLayer.show({
         embedMode: true // Embeds statistics into the render window
     });
@@ -332,7 +383,7 @@ function downloadVideo(blob, fileName) {
 }
 
 // Function to start recording and play animation
-function startRecording() {
+async function startRecording() {
     showLoadingScreen("Recording starts...");
     hideLoadingScreenAfterDelay(2000);
     if (typeof MediaRecorder === "undefined") {
@@ -388,7 +439,10 @@ function startRecording() {
     };
 
     videoRecorder.start();
-    app.scene.beginAnimation(app.camera, 0, 600, false, 1, () => {
+    // Получаем конфиг анимации в зависимости от ориентации
+    const cameraConfig = await getCameraConfigAuto(app.deviceService);
+    const animConfig = cameraConfig.animation;
+    app.scene.beginAnimation(app.camera, animConfig.fromFrame, animConfig.toFrame, false, 1, () => {
         videoRecorder.stop();
     });
 }
@@ -398,7 +452,12 @@ window.addEventListener("keydown", function (event) {
         startRecording();
     }
     if (event.key === 's') {
-        app.scene.beginAnimation(app.camera, 0, 600, true);
+        // Получаем конфиг анимации в зависимости от ориентации
+        (async () => {
+            const cameraConfig = await getCameraConfigAuto(app.deviceService);
+            const animConfig = cameraConfig.animation;
+            app.scene.beginAnimation(app.camera, animConfig.fromFrame, animConfig.toFrame, true);
+        })();
     }
     // Optionally log camera parameters on key press (e.g., 'p' for print)
     if (event.key === 'p') {
@@ -407,7 +466,7 @@ window.addEventListener("keydown", function (event) {
 
 });
 
-app.sceneService.setUpScene();
+await app.sceneService.setUpScene();
 
 app.scene.executeWhenReady(() => {
     if (app.DOWNLOAD) {

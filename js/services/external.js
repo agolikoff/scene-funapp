@@ -1,6 +1,7 @@
 import {
     BaseService
 } from "./base.js";
+import { getCameraConfigAuto } from "../config/camera/index.js";
 import { safeSetItem, getStorageType } from "../helpers/localStorage.js";
 
 export class ExternalService extends BaseService {
@@ -277,7 +278,10 @@ export class ExternalService extends BaseService {
             window.hideLoadingScreenAfterDelay(500);
             
             if (!this.app.IS_PREVIEW && this.app.runtime.loaded) {
-                this.app.scene.beginAnimation(this.app.camera, 0, 600, true);
+                // Получаем конфиг анимации в зависимости от ориентации
+                const cameraConfig = await getCameraConfigAuto(this.app.deviceService);
+                const animConfig = cameraConfig.animation;
+                this.app.scene.beginAnimation(this.app.camera, animConfig.fromFrame, animConfig.toFrame, true);
             }
             
         } catch (error) {
