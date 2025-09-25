@@ -4,11 +4,11 @@ import {
 import { getCameraConfigAuto } from "../config/camera/index.js";
 
 export class SceneService extends BaseService {
-    async setUpScene() {
+    setUpScene() {
 
         BABYLON.ScenePerformancePriority.Aggressive = 2;
         // Create and position a free camera using config
-        const cameraConfig = await getCameraConfigAuto(this.app.deviceService);
+        const cameraConfig = getCameraConfigAuto(this.app.deviceService);
         const config = cameraConfig.initial;
         this.app.camera = new BABYLON.ArcRotateCamera(
             config.name, 
@@ -20,6 +20,12 @@ export class SceneService extends BaseService {
         );
         this.app.camera.minZ = config.minZ;
         this.app.camera.maxZ = config.maxZ;
+        
+        // Применяем FOV если он задан в конфигурации
+        if (config.fov) {
+            this.app.camera.fov = BABYLON.Tools.ToRadians(config.fov);
+            console.log(`Applied camera FOV: ${config.fov} degrees (${this.app.camera.fov.toFixed(3)} radians)`);
+        }
 
         if (this.app.IS_DEV) {
             const devConfig = cameraConfig.dev;
@@ -38,14 +44,6 @@ export class SceneService extends BaseService {
             this.applyCameraOrientationConfig();
         }
 
-        // Устанавливаем поле зрения камеры из конфигурации
-        if (config.fov !== undefined) {
-            this.app.camera.fov = BABYLON.Tools.ToRadians(config.fov);
-        } else {
-            // Фоллбэк на значение по умолчанию
-            this.app.camera.fov = BABYLON.Tools.ToRadians(45);
-        }
-
         // Create a basic light, aiming 0, 1, 0 - meaning, to the sky
         const light = new BABYLON.HemisphericLight("light1", new BABYLON.Vector3(0, 1, 0), this.app.scene);
         light.intensity = 1;
@@ -57,13 +55,13 @@ export class SceneService extends BaseService {
 
         // Load the GLTF model
         BABYLON.SceneLoader.Append("./", "scene.glb" + (this.app.IS_DEV ? "?time=" + (new Date()).getTime() : ""), this.app.scene,
-            async () => {
+            () => {
                 this.app.runtime.loaded = true;
 
                 if (!this.app.IS_DEV) {
                     // Do something with the scene after loading
                     // Получаем конфиг анимации в зависимости от ориентации
-                    const currentCameraConfig = await getCameraConfigAuto(this.app.deviceService);
+                    const currentCameraConfig = getCameraConfigAuto(this.app.deviceService);
                     const animConfig = currentCameraConfig.animation;
                     
                     // Create position animation
@@ -203,11 +201,16 @@ export class SceneService extends BaseService {
     /**
      * Применение конфигурации камеры в зависимости от ориентации
      */
-    async applyCameraOrientationConfig() {
-        if (!this.app.deviceService) return;
+    applyCameraOrientationConfig() {
+        if (!this.app.deviceService) {
+            console.log('SceneService: Cannot apply camera config - deviceService not available');
+            return;
+        }
 
         const orientation = this.app.deviceService.getScreenOrientation();
-        const cameraConfig = await getCameraConfigAuto(this.app.deviceService);
+        const cameraConfig = getCameraConfigAuto(this.app.deviceService);
+        
+        console.log(`SceneService: Applying camera config for ${orientation} orientation`);
         
         // Используем конфигурацию для текущей ориентации
         const config = orientation === 'portrait' ? cameraConfig.portrait : cameraConfig.landscape;
@@ -228,27 +231,32 @@ export class SceneService extends BaseService {
             ));
         }
 
-        // Применяем FOV из конфигурации
-        if (cameraConfig.initial && cameraConfig.initial.fov !== undefined) {
+        // Применяем FOV из начальной конфигурации
+        if (cameraConfig.initial && cameraConfig.initial.fov) {
             this.app.camera.fov = BABYLON.Tools.ToRadians(cameraConfig.initial.fov);
+            console.log(`Applied camera FOV for ${orientation} orientation: ${cameraConfig.initial.fov} degrees`);
         }
 
         // Логируем применение конфигурации в режиме разработки
         if (this.app.IS_DEV) {
             console.log(`Applied camera config for ${orientation} orientation:`, config);
-            console.log(`Applied FOV: ${cameraConfig.initial?.fov || 'default'} degrees`);
         }
     }
 
     /**
      * Обновление анимации камеры при изменении ориентации
      */
-    async updateCameraAnimationForOrientation() {
-        if (!this.app.deviceService || !this.app.camera || !this.app.camera.animations) return;
+    updateCameraAnimationForOrientation() {
+        if (!this.app.deviceService || !this.app.camera || !this.app.camera.animations) {
+            console.log('SceneService: Cannot update camera animation - missing dependencies');
+            return;
+        }
 
         const orientation = this.app.deviceService.getScreenOrientation();
-        const cameraConfig = await getCameraConfigAuto(this.app.deviceService);
+        const cameraConfig = getCameraConfigAuto(this.app.deviceService);
         const animConfig = cameraConfig.animation;
+        
+        console.log(`SceneService: Updating camera animation for ${orientation} orientation`);
 
         // Очищаем существующие анимации
         this.app.camera.animations = [];

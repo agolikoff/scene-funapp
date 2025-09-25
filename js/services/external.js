@@ -279,7 +279,7 @@ export class ExternalService extends BaseService {
             
             if (!this.app.IS_PREVIEW && this.app.runtime.loaded) {
                 // Получаем конфиг анимации в зависимости от ориентации
-                const cameraConfig = await getCameraConfigAuto(this.app.deviceService);
+                const cameraConfig = getCameraConfigAuto(this.app.deviceService);
                 const animConfig = cameraConfig.animation;
                 this.app.scene.beginAnimation(this.app.camera, animConfig.fromFrame, animConfig.toFrame, true);
             }

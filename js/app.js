@@ -98,7 +98,7 @@ async function fetchDataAndUpdateLocalStorage(id) {
                 hideLoadingScreenAfterDelay(500);
                 if (!app.IS_PREVIEW) {
                     // Получаем конфиг анимации в зависимости от ориентации
-                    const cameraConfig = await getCameraConfigAuto(app.deviceService);
+                    const cameraConfig = getCameraConfigAuto(app.deviceService);
                     const animConfig = cameraConfig.animation;
                     app.scene.beginAnimation(app.camera, animConfig.fromFrame, animConfig.toFrame, true);
                 }
@@ -170,16 +170,22 @@ async function initializeApp() {
     app.colorService.updateColors();
 
     // Обработчик изменений устройства
-    app.onDeviceChange = async (deviceInfo) => {
-        console.log('Device changed, updating scene if needed:', deviceInfo);
+    app.onDeviceChange = (deviceInfo) => {
+        console.log('App: Device changed, updating scene if needed:', deviceInfo);
         
         // Обновляем конфигурацию камеры при изменении ориентации
         if (app.sceneService && app.camera && app.runtime.loaded) {
+            console.log(`App: Updating camera for ${deviceInfo.orientation} orientation`);
+            
             // Применяем новую конфигурацию камеры
-            await app.sceneService.applyCameraOrientationConfig();
+            app.sceneService.applyCameraOrientationConfig();
             
             // Обновляем анимацию камеры
-            await app.sceneService.updateCameraAnimationForOrientation();
+            app.sceneService.updateCameraAnimationForOrientation();
+            
+            console.log('App: Camera configuration updated successfully');
+        } else {
+            console.log('App: Cannot update camera - scene not ready or camera not available');
         }
     };
 
@@ -383,7 +389,7 @@ function downloadVideo(blob, fileName) {
 }
 
 // Function to start recording and play animation
-async function startRecording() {
+function startRecording() {
     showLoadingScreen("Recording starts...");
     hideLoadingScreenAfterDelay(2000);
     if (typeof MediaRecorder === "undefined") {
@@ -440,7 +446,7 @@ async function startRecording() {
 
     videoRecorder.start();
     // Получаем конфиг анимации в зависимости от ориентации
-    const cameraConfig = await getCameraConfigAuto(app.deviceService);
+    const cameraConfig = getCameraConfigAuto(app.deviceService);
     const animConfig = cameraConfig.animation;
     app.scene.beginAnimation(app.camera, animConfig.fromFrame, animConfig.toFrame, false, 1, () => {
         videoRecorder.stop();
@@ -453,11 +459,9 @@ window.addEventListener("keydown", function (event) {
     }
     if (event.key === 's') {
         // Получаем конфиг анимации в зависимости от ориентации
-        (async () => {
-            const cameraConfig = await getCameraConfigAuto(app.deviceService);
-            const animConfig = cameraConfig.animation;
-            app.scene.beginAnimation(app.camera, animConfig.fromFrame, animConfig.toFrame, true);
-        })();
+        const cameraConfig = getCameraConfigAuto(app.deviceService);
+        const animConfig = cameraConfig.animation;
+        app.scene.beginAnimation(app.camera, animConfig.fromFrame, animConfig.toFrame, true);
     }
     // Optionally log camera parameters on key press (e.g., 'p' for print)
     if (event.key === 'p') {
@@ -466,7 +470,7 @@ window.addEventListener("keydown", function (event) {
 
 });
 
-await app.sceneService.setUpScene();
+app.sceneService.setUpScene();
 
 app.scene.executeWhenReady(() => {
     if (app.DOWNLOAD) {

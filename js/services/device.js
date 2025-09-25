@@ -15,15 +15,18 @@ export class DeviceService extends BaseService {
      * Инициализация информации об устройстве
      */
     initializeDeviceInfo() {
+        // Сначала определяем тип устройства
+        const deviceType = this.getDeviceType();
+        
         this.deviceInfo = {
-            // Ориентация экрана
+            // Тип устройства (определяем первым)
+            deviceType: deviceType,
+            
+            // Ориентация экрана (использует deviceType)
             orientation: this.getScreenOrientation(),
             
             // Разрешение экрана
             resolution: this.getScreenResolution(),
-            
-            // Тип устройства
-            deviceType: this.getDeviceType(),
             
             // Вебвью в приложении
             isWebView: this.isWebView(),
@@ -53,23 +56,51 @@ export class DeviceService extends BaseService {
      * Определение ориентации экрана
      */
     getScreenOrientation() {
-        // Проверяем через screen.orientation API (современные браузеры)
-        if (screen.orientation) {
-            const angle = screen.orientation.angle;
-            if (angle === 0 || angle === 180) {
-                return 'portrait';
-            } else if (angle === 90 || angle === 270) {
-                return 'landscape';
+        // Для десктопов игнорируем screen.orientation API, так как он работает неправильно
+        const isDesktop = this.isDesktop();
+        
+        if (isDesktop) {
+            console.log('DeviceService: Desktop detected, ignoring screen.orientation API');
+        } else {
+            // Проверяем через screen.orientation API только для мобильных устройств
+            if (screen.orientation) {
+                const angle = screen.orientation.angle;
+                if (angle === 0 || angle === 180) {
+                    console.log('DeviceService: Using screen.orientation API - portrait (angle:', angle, ')');
+                    return 'portrait';
+                } else if (angle === 90 || angle === 270) {
+                    console.log('DeviceService: Using screen.orientation API - landscape (angle:', angle, ')');
+                    return 'landscape';
+                }
             }
         }
 
-        // Фоллбэк через размеры экрана
         const width = window.screen.width;
         const height = window.screen.height;
+        const aspectRatio = width / height;
         
+        console.log('DeviceService: Screen dimensions:', width, 'x', height, 'ratio:', aspectRatio.toFixed(3), 'isDesktop:', isDesktop);
+
+        // Для десктопов используем более умную логику
+        if (isDesktop) {
+            // На десктопах обычно landscape, если только не очень высокое разрешение
+            // Если соотношение сторон больше 0.8, считаем landscape
+            // Это учитывает случаи с очень высокими мониторами
+            if (aspectRatio > 0.8) {
+                console.log('DeviceService: Desktop detected, aspect ratio > 0.8 - landscape');
+                return 'landscape';
+            } else {
+                console.log('DeviceService: Desktop detected, aspect ratio <= 0.8 - portrait');
+                return 'portrait';
+            }
+        }
+        
+        // Для мобильных устройств используем стандартную логику
         if (width > height) {
+            console.log('DeviceService: Mobile/tablet detected, width > height - landscape');
             return 'landscape';
         } else {
+            console.log('DeviceService: Mobile/tablet detected, width <= height - portrait');
             return 'portrait';
         }
     }
@@ -97,12 +128,14 @@ export class DeviceService extends BaseService {
         // Проверяем мобильные устройства
         const mobileRegex = /android|webos|iphone|ipad|ipod|blackberry|iemobile|opera mini/i;
         if (mobileRegex.test(userAgent)) {
+            console.log('DeviceService: Device type detected as mobile (user agent match)');
             return 'mobile';
         }
         
         // Проверяем планшеты
         const tabletRegex = /ipad|android(?!.*mobile)|tablet/i;
         if (tabletRegex.test(userAgent)) {
+            console.log('DeviceService: Device type detected as tablet (user agent match)');
             return 'tablet';
         }
         
@@ -111,12 +144,17 @@ export class DeviceService extends BaseService {
         const screenHeight = window.screen.height;
         const maxDimension = Math.max(screenWidth, screenHeight);
         
+        console.log('DeviceService: Screen dimensions for device type:', screenWidth, 'x', screenHeight, 'max:', maxDimension);
+        
         if (maxDimension <= 768) {
+            console.log('DeviceService: Device type detected as mobile (screen size <= 768)');
             return 'mobile';
         } else if (maxDimension <= 1024) {
+            console.log('DeviceService: Device type detected as tablet (screen size <= 1024)');
             return 'tablet';
         }
         
+        console.log('DeviceService: Device type detected as desktop (screen size > 1024)');
         return 'desktop';
     }
 
@@ -197,28 +235,46 @@ export class DeviceService extends BaseService {
         // Слушаем изменения ориентации
         if (screen.orientation) {
             screen.orientation.addEventListener('change', () => {
-                this.deviceInfo.orientation = this.getScreenOrientation();
-                this.deviceInfo.resolution = this.getScreenResolution();
-                this.deviceInfo.viewport = this.getViewportSize();
+                console.log('DeviceService: Screen orientation changed via screen.orientation API');
+                this._updateDeviceInfo();
                 this.onDeviceChange();
             });
         } else {
             // Фоллбэк для старых браузеров
             window.addEventListener('orientationchange', () => {
+                console.log('DeviceService: Screen orientation changed via orientationchange event');
                 setTimeout(() => {
-                    this.deviceInfo.orientation = this.getScreenOrientation();
-                    this.deviceInfo.resolution = this.getScreenResolution();
-                    this.deviceInfo.viewport = this.getViewportSize();
+                    this._updateDeviceInfo();
                     this.onDeviceChange();
                 }, 100);
             });
         }
-
-        // Слушаем изменения размера окна
+        
+        // Дополнительно слушаем изменения размера окна для надежности
         window.addEventListener('resize', () => {
-            this.deviceInfo.viewport = this.getViewportSize();
-            this.onDeviceChange();
+            console.log('DeviceService: Window resized');
+            setTimeout(() => {
+                this._updateDeviceInfo();
+                this.onDeviceChange();
+            }, 100);
         });
+    }
+
+    /**
+     * Обновление информации об устройстве
+     */
+    _updateDeviceInfo() {
+        const oldOrientation = this.deviceInfo.orientation;
+        
+        // Обновляем информацию об устройстве
+        this.deviceInfo.orientation = this.getScreenOrientation();
+        this.deviceInfo.resolution = this.getScreenResolution();
+        this.deviceInfo.viewport = this.getViewportSize();
+        
+        // Логируем изменение ориентации
+        if (oldOrientation !== this.deviceInfo.orientation) {
+            console.log(`DeviceService: Orientation changed from ${oldOrientation} to ${this.deviceInfo.orientation}`);
+        }
     }
 
     /**

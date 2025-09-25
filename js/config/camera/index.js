@@ -8,13 +8,12 @@ import { CAMERA_CONFIG as PORTRAIT_CONFIG } from './portrait.js';
 
 /**
  * Получение конфигурации камеры в зависимости от ориентации
- * @param {string} orientation - ориентация экрана или имя файла конфигурации
- * @returns {Promise<Object|null>} конфигурация камеры или null если не найдена
+ * @param {string} orientation - ориентация экрана ('portrait', 'landscape', 'default')
+ * @returns {Object|null} конфигурация камеры или null если не найдена
  */
-export async function getCameraConfig(orientation = 'landscape') {
+export function getCameraConfig(orientation = 'landscape') {
     const normalizedOrientation = orientation.toLowerCase();
-    
-    // Проверяем стандартные конфигурации
+    console.log(normalizedOrientation);
     switch (normalizedOrientation) {
         case 'portrait':
             return PORTRAIT_CONFIG;
@@ -22,47 +21,23 @@ export async function getCameraConfig(orientation = 'landscape') {
         case 'default':
             return DEFAULT_CONFIG;
         default:
-            // Пытаемся загрузить динамическую конфигурацию
-            return await loadDynamicCameraConfig(normalizedOrientation);
-    }
-}
-
-/**
- * Загрузка динамической конфигурации камеры из файла
- * @param {string} configName - имя конфигурации (имя файла без расширения)
- * @returns {Promise<Object|null>} конфигурация камеры или null если не найдена
- */
-async function loadDynamicCameraConfig(configName) {
-    try {
-        // Пытаемся динамически импортировать файл конфигурации
-        const configModule = await import(`./${configName}.js`);
-        
-        if (configModule && configModule.CAMERA_CONFIG) {
-            console.log(`Successfully loaded dynamic camera config: ${configName}`);
-            return configModule.CAMERA_CONFIG;
-        } else {
-            console.warn(`Camera config file ${configName}.js exists but doesn't export CAMERA_CONFIG`);
+            console.warn(`Unknown camera config orientation: ${orientation}. Available options: portrait, landscape, default`);
             return null;
-        }
-    } catch (error) {
-        // Файл не найден или ошибка загрузки
-        console.warn(`Camera config file ${configName}.js not found or failed to load:`, error.message);
-        return null;
     }
 }
 
 /**
  * Получение конфигурации камеры с автоматическим определением ориентации
  * @param {Object} deviceService - сервис устройства (опционально)
- * @returns {Promise<Object>} конфигурация камеры
+ * @returns {Object} конфигурация камеры
  */
-export async function getCameraConfigAuto(deviceService = null) {
+export function getCameraConfigAuto(deviceService = null) {
     // Сначала проверяем GET параметр
     const urlParams = new URLSearchParams(window.location.search);
     const cameraConfigParam = urlParams.get('cameraConfig');
     
     if (cameraConfigParam) {
-        const config = await getCameraConfig(cameraConfigParam);
+        const config = getCameraConfig(cameraConfigParam);
         if (config) {
             console.log(`Using camera config from URL parameter: ${cameraConfigParam}`);
             return config;
@@ -80,30 +55,36 @@ export async function getCameraConfigAuto(deviceService = null) {
         // Фоллбэк для определения ориентации без DeviceService
         const width = window.screen.width;
         const height = window.screen.height;
-        orientation = width > height ? 'landscape' : 'portrait';
+        const aspectRatio = width / height;
+        
+        // Для больших экранов (десктопы) используем более умную логику
+        const maxDimension = Math.max(width, height);
+        if (maxDimension > 1024) {
+            // Десктоп - обычно landscape, если соотношение сторон разумное
+            // Игнорируем screen.orientation API для десктопов
+            orientation = aspectRatio > 0.8 ? 'landscape' : 'portrait';
+            console.log(`Camera config fallback: Desktop detected (${width}x${height}, ratio: ${aspectRatio.toFixed(3)}) - ${orientation}`);
+        } else {
+            // Мобильные устройства - проверяем screen.orientation API сначала
+            if (screen.orientation) {
+                const angle = screen.orientation.angle;
+                if (angle === 0 || angle === 180) {
+                    orientation = 'portrait';
+                } else if (angle === 90 || angle === 270) {
+                    orientation = 'landscape';
+                } else {
+                    // Фоллбэк на размеры экрана
+                    orientation = width > height ? 'landscape' : 'portrait';
+                }
+            } else {
+                // Стандартная логика по размерам экрана
+                orientation = width > height ? 'landscape' : 'portrait';
+            }
+            console.log(`Camera config fallback: Mobile/tablet detected (${width}x${height}) - ${orientation}`);
+        }
     }
     
-    return await getCameraConfig(orientation);
-}
-
-/**
- * Синхронная версия getCameraConfig для обратной совместимости
- * @param {string} orientation - ориентация экрана
- * @returns {Object|null} конфигурация камеры или null если не найдена
- */
-export function getCameraConfigSync(orientation = 'landscape') {
-    const normalizedOrientation = orientation.toLowerCase();
-    
-    switch (normalizedOrientation) {
-        case 'portrait':
-            return PORTRAIT_CONFIG;
-        case 'landscape':
-        case 'default':
-            return DEFAULT_CONFIG;
-        default:
-            console.warn(`Camera config ${orientation} not found in sync mode. Use getCameraConfig() for dynamic loading.`);
-            return null;
-    }
+    return getCameraConfig(orientation);
 }
 
 /**
@@ -122,14 +103,9 @@ export { DEFAULT_CONFIG, PORTRAIT_CONFIG };
  */
 export const CameraConfigUtils = {
     /**
-     * Получение конфигурации по ориентации (асинхронная)
+     * Получение конфигурации по ориентации
      */
     getByOrientation: getCameraConfig,
-    
-    /**
-     * Получение конфигурации по ориентации (синхронная)
-     */
-    getByOrientationSync: getCameraConfigSync,
     
     /**
      * Автоматическое получение конфигурации
@@ -167,34 +143,15 @@ export const CameraConfigUtils = {
     },
     
     /**
-     * Получение списка стандартных конфигураций
+     * Получение списка доступных конфигураций
      */
-    getStandardConfigs: () => ['portrait', 'landscape', 'default'],
+    getAvailableConfigs: () => ['portrait', 'landscape', 'default'],
     
     /**
-     * Проверка, является ли конфигурация стандартной
+     * Валидация параметра конфигурации
      */
-    isStandardConfig: (configName) => {
-        return CameraConfigUtils.getStandardConfigs().includes(configName.toLowerCase());
-    },
-    
-    /**
-     * Попытка загрузки динамической конфигурации
-     */
-    loadDynamicConfig: async (configName) => {
-        return await loadDynamicCameraConfig(configName.toLowerCase());
-    },
-    
-    /**
-     * Проверка существования файла конфигурации
-     */
-    configExists: async (configName) => {
-        try {
-            await import(`./${configName.toLowerCase()}.js`);
-            return true;
-        } catch (error) {
-            return false;
-        }
+    isValidConfig: (configName) => {
+        return CameraConfigUtils.getAvailableConfigs().includes(configName.toLowerCase());
     }
 };
 
