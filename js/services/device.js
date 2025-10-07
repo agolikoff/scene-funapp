@@ -12,40 +12,40 @@ export class DeviceService extends BaseService {
     }
 
     /**
-     * Инициализация информации об устройстве
+     * Initialize device information
      */
     initializeDeviceInfo() {
-        // Сначала определяем тип устройства
+        // First determine device type
         const deviceType = this.getDeviceType();
         
         this.deviceInfo = {
-            // Тип устройства (определяем первым)
+            // Device type (determined first)
             deviceType: deviceType,
             
-            // Ориентация экрана (использует deviceType)
+            // Screen orientation (uses deviceType)
             orientation: this.getScreenOrientation(),
             
-            // Разрешение экрана
+            // Screen resolution
             resolution: this.getScreenResolution(),
             
-            // Вебвью в приложении
+            // WebView in application
             isWebView: this.isWebView(),
             
-            // Дополнительная информация
+            // Additional information
             userAgent: navigator.userAgent,
             platform: navigator.platform,
             language: navigator.language,
             
-            // Размеры viewport
+            // Viewport dimensions
             viewport: this.getViewportSize(),
             
-            // Плотность пикселей
+            // Pixel density
             pixelRatio: window.devicePixelRatio || 1,
             
-            // Поддержка touch
+            // Touch support
             touchSupport: this.hasTouchSupport(),
             
-            // Время инициализации
+            // Initialization time
             initializedAt: new Date().toISOString()
         };
 
@@ -53,16 +53,16 @@ export class DeviceService extends BaseService {
     }
 
     /**
-     * Определение ориентации экрана
+     * Determine screen orientation
      */
     getScreenOrientation() {
-        // Для десктопов игнорируем screen.orientation API, так как он работает неправильно
+        // For desktops ignore screen.orientation API as it works incorrectly
         const isDesktop = this.isDesktop();
         
         if (isDesktop) {
             console.log('DeviceService: Desktop detected, ignoring screen.orientation API');
         } else {
-            // Проверяем через screen.orientation API только для мобильных устройств
+            // Check through screen.orientation API only for mobile devices
             if (screen.orientation) {
                 const angle = screen.orientation.angle;
                 if (angle === 0 || angle === 180) {
@@ -81,11 +81,11 @@ export class DeviceService extends BaseService {
         
         console.log('DeviceService: Screen dimensions:', width, 'x', height, 'ratio:', aspectRatio.toFixed(3), 'isDesktop:', isDesktop);
 
-        // Для десктопов используем более умную логику
+        // For desktops use smarter logic
         if (isDesktop) {
-            // На десктопах обычно landscape, если только не очень высокое разрешение
-            // Если соотношение сторон больше 0.8, считаем landscape
-            // Это учитывает случаи с очень высокими мониторами
+            // On desktops usually landscape, unless very high resolution
+            // If aspect ratio is greater than 0.8, consider landscape
+            // This accounts for cases with very high monitors
             if (aspectRatio > 0.8) {
                 console.log('DeviceService: Desktop detected, aspect ratio > 0.8 - landscape');
                 return 'landscape';
@@ -95,7 +95,7 @@ export class DeviceService extends BaseService {
             }
         }
         
-        // Для мобильных устройств используем стандартную логику
+        // For mobile devices use standard logic
         if (width > height) {
             console.log('DeviceService: Mobile/tablet detected, width > height - landscape');
             return 'landscape';
@@ -106,7 +106,7 @@ export class DeviceService extends BaseService {
     }
 
     /**
-     * Получение разрешения экрана
+     * Get screen resolution
      */
     getScreenResolution() {
         return {
@@ -120,26 +120,26 @@ export class DeviceService extends BaseService {
     }
 
     /**
-     * Определение типа устройства
+     * Determine device type
      */
     getDeviceType() {
         const userAgent = navigator.userAgent.toLowerCase();
         
-        // Проверяем мобильные устройства
+        // Check mobile devices
         const mobileRegex = /android|webos|iphone|ipad|ipod|blackberry|iemobile|opera mini/i;
         if (mobileRegex.test(userAgent)) {
             console.log('DeviceService: Device type detected as mobile (user agent match)');
             return 'mobile';
         }
         
-        // Проверяем планшеты
+        // Check tablets
         const tabletRegex = /ipad|android(?!.*mobile)|tablet/i;
         if (tabletRegex.test(userAgent)) {
             console.log('DeviceService: Device type detected as tablet (user agent match)');
             return 'tablet';
         }
         
-        // Проверяем размер экрана для дополнительной проверки
+        // Check screen size for additional verification
         const screenWidth = window.screen.width;
         const screenHeight = window.screen.height;
         const maxDimension = Math.max(screenWidth, screenHeight);
@@ -159,12 +159,12 @@ export class DeviceService extends BaseService {
     }
 
     /**
-     * Определение вебвью в приложении
+     * Determine webview in application
      */
     isWebView() {
         const userAgent = navigator.userAgent;
         
-        // Проверяем различные признаки вебвью
+        // Check various webview signs
         const webViewIndicators = [
             // iOS WebView
             /wv\)/i,
@@ -174,7 +174,7 @@ export class DeviceService extends BaseService {
             /; wv\)/i,
             /Version\/.*Chrome\/.*Mobile/i,
             
-            // Другие приложения
+            // Other applications
             /FBAN|FBAV/i, // Facebook
             /Instagram/i,
             /Twitter/i,
@@ -184,16 +184,16 @@ export class DeviceService extends BaseService {
             /Discord/i,
             /Slack/i,
             
-            // Проверяем отсутствие обычных браузерных функций
+            // Check absence of normal browser functions
             !window.chrome && !window.safari && !window.opera && !window.firefox
         ];
 
-        // Проверяем наличие WebView API
+        // Check for WebView API
         if (window.webkit && window.webkit.messageHandlers) {
             return true;
         }
 
-        // Проверяем user agent
+        // Check user agent
         for (const indicator of webViewIndicators) {
             if (indicator instanceof RegExp) {
                 if (indicator.test(userAgent)) {
@@ -208,7 +208,7 @@ export class DeviceService extends BaseService {
     }
 
     /**
-     * Получение размеров viewport
+     * Get viewport dimensions
      */
     getViewportSize() {
         return {
@@ -220,7 +220,7 @@ export class DeviceService extends BaseService {
     }
 
     /**
-     * Проверка поддержки touch
+     * Check touch support
      */
     hasTouchSupport() {
         return 'ontouchstart' in window || 
@@ -229,10 +229,10 @@ export class DeviceService extends BaseService {
     }
 
     /**
-     * Настройка слушателей событий
+     * Setup event listeners
      */
     setupEventListeners() {
-        // Слушаем изменения ориентации
+        // Listen for orientation changes
         if (screen.orientation) {
             screen.orientation.addEventListener('change', () => {
                 console.log('DeviceService: Screen orientation changed via screen.orientation API');
@@ -240,7 +240,7 @@ export class DeviceService extends BaseService {
                 this.onDeviceChange();
             });
         } else {
-            // Фоллбэк для старых браузеров
+            // Fallback for old browsers
             window.addEventListener('orientationchange', () => {
                 console.log('DeviceService: Screen orientation changed via orientationchange event');
                 setTimeout(() => {
@@ -250,7 +250,7 @@ export class DeviceService extends BaseService {
             });
         }
         
-        // Дополнительно слушаем изменения размера окна для надежности
+        // Additionally listen for window size changes for reliability
         window.addEventListener('resize', () => {
             console.log('DeviceService: Window resized');
             setTimeout(() => {
@@ -261,85 +261,85 @@ export class DeviceService extends BaseService {
     }
 
     /**
-     * Обновление информации об устройстве
+     * Update device information
      */
     _updateDeviceInfo() {
         const oldOrientation = this.deviceInfo.orientation;
         
-        // Обновляем информацию об устройстве
+        // Update device information
         this.deviceInfo.orientation = this.getScreenOrientation();
         this.deviceInfo.resolution = this.getScreenResolution();
         this.deviceInfo.viewport = this.getViewportSize();
         
-        // Логируем изменение ориентации
+        // Log orientation change
         if (oldOrientation !== this.deviceInfo.orientation) {
             console.log(`DeviceService: Orientation changed from ${oldOrientation} to ${this.deviceInfo.orientation}`);
         }
     }
 
     /**
-     * Обработчик изменений устройства
+     * Device change handler
      */
     onDeviceChange() {
         console.log('Device changed:', this.deviceInfo);
         
-        // Уведомляем другие сервисы об изменениях
+        // Notify other services about changes
         if (this.app.onDeviceChange) {
             this.app.onDeviceChange(this.deviceInfo);
         }
     }
 
     /**
-     * Получение информации об устройстве
+     * Get device information
      */
     getDeviceInfo() {
         return { ...this.deviceInfo };
     }
 
     /**
-     * Проверка является ли устройство мобильным
+     * Check if device is mobile
      */
     isMobile() {
         return this.deviceInfo.deviceType === 'mobile';
     }
 
     /**
-     * Проверка является ли устройство планшетом
+     * Check if device is tablet
      */
     isTablet() {
         return this.deviceInfo.deviceType === 'tablet';
     }
 
     /**
-     * Проверка является ли устройство десктопом
+     * Check if device is desktop
      */
     isDesktop() {
         return this.deviceInfo.deviceType === 'desktop';
     }
 
     /**
-     * Проверка ориентации экрана
+     * Check screen orientation
      */
     isLandscape() {
         return this.deviceInfo.orientation === 'landscape';
     }
 
     /**
-     * Проверка ориентации экрана
+     * Check screen orientation
      */
     isPortrait() {
         return this.deviceInfo.orientation === 'portrait';
     }
 
     /**
-     * Проверка запуска в вебвью
+     * Check if running in webview
      */
     isInWebView() {
         return this.deviceInfo.isWebView;
     }
 
     /**
-     * Получение размера экрана в пикселях
+     * Get screen size in pixels
      */
     getScreenSize() {
         return {
@@ -349,28 +349,28 @@ export class DeviceService extends BaseService {
     }
 
     /**
-     * Получение размера viewport
+     * Get viewport size
      */
     getViewportSize() {
         return this.deviceInfo.viewport;
     }
 
     /**
-     * Получение плотности пикселей
+     * Get pixel density
      */
     getPixelRatio() {
         return this.deviceInfo.pixelRatio;
     }
 
     /**
-     * Проверка поддержки touch
+     * Check touch support
      */
     hasTouch() {
         return this.deviceInfo.touchSupport;
     }
 
     /**
-     * Получение краткой информации об устройстве
+     * Get brief device information
      */
     getDeviceSummary() {
         return {
@@ -385,21 +385,21 @@ export class DeviceService extends BaseService {
     }
 
     /**
-     * Получение конфигурации для текущего устройства
+     * Get configuration for current device
      */
     getDeviceConfig() {
         return getDeviceConfig(this);
     }
 
     /**
-     * Проверка поддержки определенной функции
+     * Check support for specific feature
      */
     isFeatureSupported(feature) {
         return isFeatureSupported(this, feature);
     }
 
     /**
-     * Получение настроек камеры для текущего устройства
+     * Get camera settings for current device
      */
     getCameraConfig() {
         const config = this.getDeviceConfig();
@@ -407,7 +407,7 @@ export class DeviceService extends BaseService {
     }
 
     /**
-     * Получение настроек UI для текущего устройства
+     * Get UI settings for current device
      */
     getUIConfig() {
         const config = this.getDeviceConfig();
@@ -415,7 +415,7 @@ export class DeviceService extends BaseService {
     }
 
     /**
-     * Получение настроек производительности для текущего устройства
+     * Get performance settings for current device
      */
     getPerformanceConfig() {
         const config = this.getDeviceConfig();
@@ -423,14 +423,14 @@ export class DeviceService extends BaseService {
     }
 
     /**
-     * Проверка, нужно ли адаптировать интерфейс для touch
+     * Check if UI should be adapted for touch
      */
     needsTouchAdaptation() {
         return this.deviceInfo.touchSupport && this.deviceInfo.deviceType !== 'desktop';
     }
 
     /**
-     * Проверка, нужно ли упростить интерфейс
+     * Check if UI should be simplified
      */
     needsSimplifiedUI() {
         const uiConfig = this.getUIConfig();
@@ -438,7 +438,7 @@ export class DeviceService extends BaseService {
     }
 
     /**
-     * Получение рекомендуемого размера touch-элементов
+     * Get recommended size for touch elements
      */
     getTouchTargetSize() {
         const uiConfig = this.getUIConfig();
@@ -446,7 +446,7 @@ export class DeviceService extends BaseService {
     }
 
     /**
-     * Проверка, нужно ли оптимизировать для вебвью
+     * Check if optimization for webview is needed
      */
     needsWebViewOptimization() {
         const perfConfig = this.getPerformanceConfig();
@@ -454,7 +454,7 @@ export class DeviceService extends BaseService {
     }
 
     /**
-     * Получение рекомендуемого качества рендеринга
+     * Get recommended rendering quality
      */
     getRecommendedQuality() {
         const perfConfig = this.getPerformanceConfig();
@@ -462,7 +462,7 @@ export class DeviceService extends BaseService {
     }
 
     /**
-     * Получение списка отключенных эффектов
+     * Get list of disabled effects
      */
     getDisabledEffects() {
         const perfConfig = this.getPerformanceConfig();

@@ -1,36 +1,36 @@
 /**
- * Конфигурация для различных типов устройств
+ * Configuration for various device types
  */
 export const DEVICE_CONFIG = {
-    // Настройки для мобильных устройств
+    // Settings for mobile devices
     mobile: {
-        // Настройки камеры
+        // Camera settings
         camera: {
-            // Более близкая позиция камеры для мобильных
+            // Closer camera position for mobile
             position: { x: 8, y: 4, z: 8 },
             target: { x: -8.5, y: 0, z: 0.8 },
-            // Уменьшенная скорость анимации
+            // Reduced animation speed
             animationSpeed: 0.8
         },
         
-        // Настройки интерфейса
+        // UI settings
         ui: {
-            // Увеличенные размеры элементов для touch
+            // Increased element sizes for touch
             touchTargetSize: 44,
-            // Упрощенный интерфейс
+            // Simplified interface
             simplifiedUI: true
         },
         
-        // Настройки производительности
+        // Performance settings
         performance: {
-            // Сниженное качество для мобильных
+            // Reduced quality for mobile
             quality: 'medium',
-            // Отключение некоторых эффектов
+            // Disable some effects
             disableEffects: ['shadows', 'reflections']
         }
     },
 
-    // Настройки для планшетов
+    // Settings for tablets
     tablet: {
         camera: {
             position: { x: 10, y: 5, z: 10 },
@@ -49,7 +49,7 @@ export const DEVICE_CONFIG = {
         }
     },
 
-    // Настройки для десктопов
+    // Settings for desktops
     desktop: {
         camera: {
             position: { x: 13.4, y: 9.3, z: 0 },
@@ -68,101 +68,101 @@ export const DEVICE_CONFIG = {
         }
     },
 
-    // Настройки для вебвью в приложениях
+    // Settings for webview in applications
     webview: {
-        // Специальные настройки для вебвью
+        // Special settings for webview
         camera: {
-            // Более статичная камера для вебвью
+            // More static camera for webview
             staticCamera: true,
             position: { x: 10, y: 6, z: 10 },
             target: { x: -8.5, y: 0, z: 0.8 }
         },
         
         ui: {
-            // Скрытие элементов управления
+            // Hide control elements
             hideControls: true,
-            // Адаптация под родительское приложение
+            // Adaptation to parent application
             adaptToParent: true
         },
         
         performance: {
-            // Оптимизация для вебвью
+            // Optimization for webview
             optimizeForWebView: true,
             quality: 'medium'
         }
     },
 
-    // Настройки для портретной ориентации
+    // Settings for portrait orientation
     portrait: {
         camera: {
-            // Адаптированная позиция для портрета
+            // Adapted position for portrait
             position: { x: 12, y: 8, z: 5 },
             target: { x: -8.5, y: 0, z: 0.8 },
-            // Более медленная анимация
+            // Slower animation
             animationSpeed: 0.7
         },
         
         ui: {
-            // Вертикальная компоновка
+            // Vertical layout
             verticalLayout: true,
-            // Увеличенные отступы
+            // Increased padding
             increasedPadding: true
         }
     },
 
-    // Настройки для ландшафтной ориентации
+    // Settings for landscape orientation
     landscape: {
         camera: {
-            // Стандартная позиция для ландшафта
+            // Standard position for landscape
             position: { x: 13.4, y: 9.3, z: 0 },
             target: { x: -9, y: 0.6, z: 0 },
             animationSpeed: 1.0
         },
         
         ui: {
-            // Горизонтальная компоновка
+            // Horizontal layout
             horizontalLayout: true,
-            // Стандартные отступы
+            // Standard padding
             standardPadding: true
         }
     },
 
-    // Общие настройки
+    // Common settings
     common: {
-        // Минимальные размеры экрана
+        // Minimum screen sizes
         minScreenWidth: 320,
         minScreenHeight: 568,
         
-        // Максимальные размеры экрана
+        // Maximum screen sizes
         maxScreenWidth: 3840,
         maxScreenHeight: 2160,
         
-        // Настройки анимации
+        // Animation settings
         animation: {
             defaultDuration: 1000,
             easing: 'ease-in-out'
         },
         
-        // Настройки производительности
+        // Performance settings
         performance: {
-            // Автоматическое снижение качества при низком FPS
+            // Automatic quality reduction at low FPS
             autoQualityAdjustment: true,
-            // Целевой FPS
+            // Target FPS
             targetFPS: 60,
-            // Минимальный FPS для снижения качества
+            // Minimum FPS for quality reduction
             minFPS: 30
         }
     }
 };
 
 /**
- * Получение конфигурации для текущего устройства
+ * Get configuration for current device
  */
 export function getDeviceConfig(deviceService) {
     const deviceInfo = deviceService.getDeviceInfo();
     const config = { ...DEVICE_CONFIG.common };
 
-    // Применяем настройки по типу устройства
+    // Apply settings by device type
     if (deviceInfo.deviceType === 'mobile') {
         Object.assign(config, DEVICE_CONFIG.mobile);
     } else if (deviceInfo.deviceType === 'tablet') {
@@ -171,12 +171,12 @@ export function getDeviceConfig(deviceService) {
         Object.assign(config, DEVICE_CONFIG.desktop);
     }
 
-    // Применяем настройки для вебвью
+    // Apply webview settings
     if (deviceInfo.isWebView) {
         Object.assign(config, DEVICE_CONFIG.webview);
     }
 
-    // Применяем настройки по ориентации
+    // Apply orientation settings
     if (deviceInfo.orientation === 'portrait') {
         Object.assign(config, DEVICE_CONFIG.portrait);
     } else if (deviceInfo.orientation === 'landscape') {
@@ -187,7 +187,7 @@ export function getDeviceConfig(deviceService) {
 }
 
 /**
- * Проверка поддержки определенной функции
+ * Check support for specific feature
  */
 export function isFeatureSupported(deviceService, feature) {
     const deviceInfo = deviceService.getDeviceInfo();
@@ -209,4 +209,5 @@ export function isFeatureSupported(deviceService, feature) {
             return false;
     }
 }
+
 

@@ -14,7 +14,7 @@ export class ColorService extends BaseService {
             this.app.upperWallColor = '#00FF00';
             this.app.seatsColor = '#00FF00';
         } else {
-            // Устанавливаем основной цвет из данных, полученных из LocalStorage
+            // Set main color from data received from LocalStorage
             this.app.mainColor = this.app.extractedData && this.app.extractedData.color ? this.app.extractedData.color : '#00f6ff';
             this.app.seatsColor = this.app.extractedData && this.app.extractedData.color_seats ? this.app.extractedData.color_seats : this.app.mainColor;
             this.app.lowerWallColor = this.app.extractedData && this.app.extractedData.color_lower_wall ? this.app.extractedData.color_lower_wall : this.app.mainColor;

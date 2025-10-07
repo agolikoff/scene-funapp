@@ -1,15 +1,15 @@
 /**
- * Автоматический выбор конфигурации камеры в зависимости от ориентации устройства
+ * Automatic camera configuration selection based on device orientation
  */
 
-// Импортируем конфигурации
+// Import configurations
 import { CAMERA_CONFIG as DEFAULT_CONFIG } from './default.js';
 import { CAMERA_CONFIG as PORTRAIT_CONFIG } from './portrait.js';
 
 /**
- * Получение конфигурации камеры в зависимости от ориентации
- * @param {string} orientation - ориентация экрана ('portrait', 'landscape', 'default')
- * @returns {Object|null} конфигурация камеры или null если не найдена
+ * Get camera configuration based on orientation
+ * @param {string} orientation - screen orientation ('portrait', 'landscape', 'default')
+ * @returns {Object|null} camera configuration or null if not found
  */
 export function getCameraConfig(orientation = 'landscape') {
     const normalizedOrientation = orientation.toLowerCase();
@@ -27,12 +27,12 @@ export function getCameraConfig(orientation = 'landscape') {
 }
 
 /**
- * Получение конфигурации камеры с автоматическим определением ориентации
- * @param {Object} deviceService - сервис устройства (опционально)
- * @returns {Object} конфигурация камеры
+ * Get camera configuration with automatic orientation detection
+ * @param {Object} deviceService - device service (optional)
+ * @returns {Object} camera configuration
  */
 export function getCameraConfigAuto(deviceService = null) {
-    // Сначала проверяем GET параметр
+    // First check GET parameter
     const urlParams = new URLSearchParams(window.location.search);
     const cameraConfigParam = urlParams.get('cameraConfig');
     
@@ -46,26 +46,26 @@ export function getCameraConfigAuto(deviceService = null) {
         }
     }
     
-    // Автоматическое определение ориентации
+    // Automatic orientation detection
     let orientation = 'landscape';
     
     if (deviceService && typeof deviceService.getScreenOrientation === 'function') {
         orientation = deviceService.getScreenOrientation();
     } else if (typeof window !== 'undefined' && window.screen) {
-        // Фоллбэк для определения ориентации без DeviceService
+        // Fallback for orientation detection without DeviceService
         const width = window.screen.width;
         const height = window.screen.height;
         const aspectRatio = width / height;
         
-        // Для больших экранов (десктопы) используем более умную логику
+        // For large screens (desktops) use smarter logic
         const maxDimension = Math.max(width, height);
         if (maxDimension > 1024) {
-            // Десктоп - обычно landscape, если соотношение сторон разумное
-            // Игнорируем screen.orientation API для десктопов
+            // Desktop - usually landscape if aspect ratio is reasonable
+            // Ignore screen.orientation API for desktops
             orientation = aspectRatio > 0.8 ? 'landscape' : 'portrait';
             console.log(`Camera config fallback: Desktop detected (${width}x${height}, ratio: ${aspectRatio.toFixed(3)}) - ${orientation}`);
         } else {
-            // Мобильные устройства - проверяем screen.orientation API сначала
+            // Mobile devices - check screen.orientation API first
             if (screen.orientation) {
                 const angle = screen.orientation.angle;
                 if (angle === 0 || angle === 180) {
@@ -73,11 +73,11 @@ export function getCameraConfigAuto(deviceService = null) {
                 } else if (angle === 90 || angle === 270) {
                     orientation = 'landscape';
                 } else {
-                    // Фоллбэк на размеры экрана
+                    // Fallback to screen dimensions
                     orientation = width > height ? 'landscape' : 'portrait';
                 }
             } else {
-                // Стандартная логика по размерам экрана
+                // Standard logic by screen dimensions
                 orientation = width > height ? 'landscape' : 'portrait';
             }
             console.log(`Camera config fallback: Mobile/tablet detected (${width}x${height}) - ${orientation}`);
@@ -88,47 +88,47 @@ export function getCameraConfigAuto(deviceService = null) {
 }
 
 /**
- * Экспорт конфигурации по умолчанию (ландшафтная ориентация)
- * Это используется для обратной совместимости
+ * Export default configuration (landscape orientation)
+ * This is used for backward compatibility
  */
 export const CAMERA_CONFIG = DEFAULT_CONFIG;
 
 /**
- * Экспорт отдельных конфигураций для прямого доступа
+ * Export individual configurations for direct access
  */
 export { DEFAULT_CONFIG, PORTRAIT_CONFIG };
 
 /**
- * Утилиты для работы с конфигурацией камеры
+ * Utilities for working with camera configuration
  */
 export const CameraConfigUtils = {
     /**
-     * Получение конфигурации по ориентации
+     * Get configuration by orientation
      */
     getByOrientation: getCameraConfig,
     
     /**
-     * Автоматическое получение конфигурации
+     * Automatic configuration retrieval
      */
     getAuto: getCameraConfigAuto,
     
     /**
-     * Проверка, является ли ориентация портретной
+     * Check if orientation is portrait
      */
     isPortrait: (orientation) => orientation === 'portrait',
     
     /**
-     * Проверка, является ли ориентация ландшафтной
+     * Check if orientation is landscape
      */
     isLandscape: (orientation) => orientation === 'landscape',
     
     /**
-     * Получение названия конфигурации
+     * Get configuration name
      */
     getConfigName: (orientation) => orientation === 'portrait' ? 'portrait' : 'default',
     
     /**
-     * Получение GET параметра cameraConfig
+     * Get cameraConfig GET parameter
      */
     getUrlParameter: () => {
         const urlParams = new URLSearchParams(window.location.search);
@@ -136,19 +136,19 @@ export const CameraConfigUtils = {
     },
     
     /**
-     * Проверка, задан ли параметр cameraConfig в URL
+     * Check if cameraConfig parameter is set in URL
      */
     hasUrlParameter: () => {
         return CameraConfigUtils.getUrlParameter() !== null;
     },
     
     /**
-     * Получение списка доступных конфигураций
+     * Get list of available configurations
      */
     getAvailableConfigs: () => ['portrait', 'landscape', 'default'],
     
     /**
-     * Валидация параметра конфигурации
+     * Validate configuration parameter
      */
     isValidConfig: (configName) => {
         return CameraConfigUtils.getAvailableConfigs().includes(configName.toLowerCase());

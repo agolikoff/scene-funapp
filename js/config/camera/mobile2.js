@@ -1,50 +1,50 @@
 /**
- * Конфигурация камеры для мобильных устройств
- * Пример динамической конфигурации
+ * Camera configuration for mobile devices
+ * Example of dynamic configuration
  */
 export const CAMERA_CONFIG = {
-    // Начальные настройки камеры
+    // Initial camera settings
     initial: {
-        // Параметры ArcRotateCamera
+        // ArcRotateCamera parameters
         name: "camera1",
         alpha: 10,
         beta: 10,
         radius: 10,
         target: { x: -8.5, y: 0, z: 0.8 },
         
-        // Ограничения камеры
+        // Camera constraints
         minZ: 0.5,
         maxZ: 100,
         
-        // Поле зрения камеры (в градусах) - шире для мобильных устройств
+        // Camera field of view (in degrees) - wider for mobile devices
         fov: 120
     },
 
-    // Настройки для режима разработки
+    // Settings for development mode
     dev: {
         position: { x: 15, y: 12, z: 0 },
         target: { x: -9, y: 0.6, z: 0 }
     },
 
-    // Настройки для режима предварительного просмотра
+    // Settings for preview mode
     preview: {
         position: { x: 15, y: 12, z: 0 },
         target: { x: -9, y: 1.5, z: 0 }
     },
 
-    // Настройки для мобильных устройств
+    // Settings for mobile devices
     mobile: {
         position: { x: 0, y: 8, z: 0 },
         target: { x: -9, y: 0.6, z: 0 }
     },
 
-    // Анимация камеры для мобильных устройств
+    // Camera animation for mobile devices
     animation: {
-        // Настройки анимации
+        // Animation settings
         fps: 30,
         loopMode: "CYCLE",
         
-        // Ключевые точки анимации позиции камеры для мобильных
+        // Camera position animation keyframes for mobile
         positionKeys: [
             {
                 frame: 0,
@@ -52,7 +52,7 @@ export const CAMERA_CONFIG = {
             }
         ],
 
-        // Ключевые точки анимации цели камеры для мобильных
+        // Camera target animation keyframes for mobile
         targetKeys: [
             {
                 frame: 0,
@@ -76,7 +76,7 @@ export const CAMERA_CONFIG = {
             }
         ],
 
-        // Диапазон анимации
+        // Animation range
         fromFrame: 0,
         toFrame: 600
     }

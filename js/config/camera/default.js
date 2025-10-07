@@ -1,49 +1,49 @@
 /**
- * Конфигурация камеры для ландшафтной ориентации (по умолчанию)
+ * Camera configuration for landscape orientation (default)
  */
 export const CAMERA_CONFIG = {
-    // Начальные настройки камеры
+    // Initial camera settings
     initial: {
-        // Параметры ArcRotateCamera
+        // ArcRotateCamera parameters
         name: "camera1",
         alpha: 10,
         beta: 10,
         radius: 10,
         target: { x: -8.5, y: 0, z: 0.8 },
         
-        // Ограничения камеры
+        // Camera constraints
         minZ: 0.5,
         maxZ: 100,
 
-        // Поле зрения камеры (в градусах) - шире для мобильных устройств
+        // Camera field of view (in degrees) - wider for mobile devices
         fov: 45
     },
 
-    // Настройки для режима разработки
+    // Settings for development mode
     dev: {
         position: { x: 13.4, y: 9.3, z: 0 },
         target: { x: -9, y: 0.6, z: 0 }
     },
 
-    // Настройки для режима предварительного просмотра
+    // Settings for preview mode
     preview: {
         position: { x: 13.4, y: 9.3, z: 0 },
         target: { x: -9, y: 1.5, z: 0 }
     },
 
-    // Настройки для ландшафтной ориентации
+    // Settings for landscape orientation
     landscape: {
         position: { x: 13.4, y: 9.3, z: 0 },
         target: { x: -9, y: 0.6, z: 0 }
     },
 
-    // Анимация камеры для ландшафтной ориентации
+    // Camera animation for landscape orientation
     animation: {
-        // Настройки анимации
+        // Animation settings
         fps: 30,
         loopMode: "CYCLE",
         
-        // Ключевые точки анимации позиции камеры
+        // Camera position animation keyframes
         positionKeys: [
             {
                 frame: 0,
@@ -67,7 +67,7 @@ export const CAMERA_CONFIG = {
             }
         ],
 
-        // Ключевые точки анимации цели камеры
+        // Camera target animation keyframes
         targetKeys: [
             {
                 frame: 0,
@@ -83,9 +83,10 @@ export const CAMERA_CONFIG = {
             }
         ],
 
-        // Диапазон анимации
+        // Animation range
         fromFrame: 0,
         toFrame: 600
     }
 };
+
 

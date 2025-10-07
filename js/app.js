@@ -86,7 +86,7 @@ async function fetchDataAndUpdateLocalStorage(id) {
         if (jsonString !== previousStaticData) {
             previousStaticData = jsonString;
             
-            // Импортируем функции динамически
+            // Import functions dynamically
             const { safeSetItem, getStorageType } = await import('./helpers/localStorage.js');
             const success = safeSetItem('air', jsonString);
             const storageType = getStorageType();
@@ -97,13 +97,13 @@ async function fetchDataAndUpdateLocalStorage(id) {
                 await updateAllServices(); 
                 hideLoadingScreenAfterDelay(500);
                 if (!app.IS_PREVIEW) {
-                    // Получаем конфиг анимации в зависимости от ориентации
+                    // Get animation config based on orientation
                     const cameraConfig = getCameraConfigAuto(app.deviceService);
                     const animConfig = cameraConfig.animation;
                     app.scene.beginAnimation(app.camera, animConfig.fromFrame, animConfig.toFrame, true);
                 }
             } else {
-                console.error(`Не удалось сохранить данные в ${storageType}`);
+                console.error(`Failed to save data to ${storageType}`);
             }
         }
     } catch (error) {
@@ -148,7 +148,7 @@ if (!app.IS_DEV) {
     app.engine.enableOfflineSupport = true;
 }
 
-// Async инициализация приложения
+// Async application initialization
 async function initializeApp() {
     app.deviceService = new DeviceService(app);
     app.screenService = new ScreenService(app);
@@ -169,18 +169,18 @@ async function initializeApp() {
 
     app.colorService.updateColors();
 
-    // Обработчик изменений устройства
+    // Device change handler
     app.onDeviceChange = (deviceInfo) => {
         console.log('App: Device changed, updating scene if needed:', deviceInfo);
         
-        // Обновляем конфигурацию камеры при изменении ориентации
+        // Update camera configuration when orientation changes
         if (app.sceneService && app.camera && app.runtime.loaded) {
             console.log(`App: Updating camera for ${deviceInfo.orientation} orientation`);
             
-            // Применяем новую конфигурацию камеры
+            // Apply new camera configuration
             app.sceneService.applyCameraOrientationConfig();
             
-            // Обновляем анимацию камеры
+            // Update camera animation
             app.sceneService.updateCameraAnimationForOrientation();
             
             console.log('App: Camera configuration updated successfully');
@@ -189,7 +189,7 @@ async function initializeApp() {
         }
     };
 
-    // Диагностическая информация о хранилище и устройстве при запуске
+    // Diagnostic information about storage and device at startup
     if (app.IS_DEV) {
         try {
             const { getStorageInfo } = await import('./helpers/localStorage.js');
@@ -199,7 +199,7 @@ async function initializeApp() {
             console.warn('Could not load storage diagnostic info:', error);
         }
         
-        // Логируем информацию об устройстве
+        // Log device information
         console.log('Device Summary:', app.deviceService.getDeviceSummary());
         console.log('Device Config:', app.deviceService.getDeviceConfig());
         console.log('Camera Config:', app.deviceService.getCameraConfig());
@@ -213,7 +213,7 @@ async function initializeApp() {
             vibration: app.deviceService.isFeatureSupported('vibration')
         });
         
-        // Логируем информацию о конфигурации камеры
+        // Log camera configuration information
         try {
             const { CameraConfigUtils } = await import(`./config/camera/index.js?v=${VERSION}`);
             const cameraParam = CameraConfigUtils.getUrlParameter();
@@ -228,14 +228,14 @@ async function initializeApp() {
     }
 }
 
-// Запускаем инициализацию
+// Start initialization
 initializeApp().catch(error => {
     console.error('App initialization failed:', error);
 });
 
 window.addEventListener("keydown", async function (event) {
     if (event.key === 'e') {
-        // Импортируем функции динамически для избежания зависимостей
+        // Import functions dynamically to avoid dependencies
         const { safeGetItem, getStorageType } = await import('./helpers/localStorage.js');
         const airData = safeGetItem('air');
         const storageType = getStorageType();
@@ -250,7 +250,7 @@ window.addEventListener("keydown", async function (event) {
             }
             console.log(`Export URL created from ${storageType}:`, urlFull);
         } else {
-            console.error(`Не удалось получить данные из ${storageType} для экспорта`);
+            console.error(`Failed to get data from ${storageType} for export`);
         }
     }
 });
@@ -289,7 +289,7 @@ window.addEventListener("resize", function () {
 var loadingScreen = document.getElementById("loadingScreen");
 async function updateAllServices() {
     try {
-        // Проверяем готовность основных компонентов
+        // Check readiness of main components
         if (!app.scene || !app.runtime.loaded) {
             console.warn("Scene not loaded yet, retrying in 1 second...");
             setTimeout(() => updateAllServices(), 1000);
@@ -307,7 +307,7 @@ async function updateAllServices() {
             return;
         }
         
-        // Проверяем готовность всех сервисов перед обновлением
+        // Check readiness of all services before updating
         if (app.dataService) app.dataService.loadStats();
         if (app.screenService) app.screenService.updateScreens();
         if (app.colorService) app.colorService.updateColors();
@@ -351,7 +351,7 @@ window.addEventListener("storage", async function (event) {
 
 if (app.IS_DEV) {
     window.app = app;
-    window.deviceService = app.deviceService; // Глобальный доступ для отладки
+    window.deviceService = app.deviceService; // Global access for debugging
     app.scene.debugLayer.show({
         embedMode: true // Embeds statistics into the render window
     });
@@ -367,7 +367,7 @@ function isMacUser() {
     if (navigator.userAgentData && navigator.userAgentData.platform) {
         return navigator.userAgentData.platform.toLowerCase().includes('mac');
     }
-    // Фоллбэк для браузеров, которые не поддерживают userAgentData
+    // Fallback for browsers that don't support userAgentData
     return navigator.userAgent.toLowerCase().includes('mac');
 }
 
@@ -445,7 +445,7 @@ function startRecording() {
     };
 
     videoRecorder.start();
-    // Получаем конфиг анимации в зависимости от ориентации
+        // Get animation config based on orientation
     const cameraConfig = getCameraConfigAuto(app.deviceService);
     const animConfig = cameraConfig.animation;
     app.scene.beginAnimation(app.camera, animConfig.fromFrame, animConfig.toFrame, false, 1, () => {
@@ -458,7 +458,7 @@ window.addEventListener("keydown", function (event) {
         startRecording();
     }
     if (event.key === 's') {
-        // Получаем конфиг анимации в зависимости от ориентации
+        // Get animation config based on orientation
         const cameraConfig = getCameraConfigAuto(app.deviceService);
         const animConfig = cameraConfig.animation;
         app.scene.beginAnimation(app.camera, animConfig.fromFrame, animConfig.toFrame, true);

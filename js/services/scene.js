@@ -21,7 +21,7 @@ export class SceneService extends BaseService {
         this.app.camera.minZ = config.minZ;
         this.app.camera.maxZ = config.maxZ;
         
-        // Применяем FOV если он задан в конфигурации
+        // Apply FOV if it's set in configuration
         if (config.fov) {
             this.app.camera.fov = BABYLON.Tools.ToRadians(config.fov);
             console.log(`Applied camera FOV: ${config.fov} degrees (${this.app.camera.fov.toFixed(3)} radians)`);
@@ -39,7 +39,7 @@ export class SceneService extends BaseService {
             this.app.camera.setTarget(new BABYLON.Vector3(previewConfig.target.x, previewConfig.target.y, previewConfig.target.z));
         }
 
-        // Применяем настройки камеры в зависимости от ориентации (если DeviceService доступен)
+        // Apply camera settings based on orientation (if DeviceService is available)
         if (this.app.deviceService && !this.app.IS_DEV && !this.app.IS_PREVIEW) {
             this.applyCameraOrientationConfig();
         }
@@ -60,7 +60,7 @@ export class SceneService extends BaseService {
 
                 if (!this.app.IS_DEV) {
                     // Do something with the scene after loading
-                    // Получаем конфиг анимации в зависимости от ориентации
+                    // Get animation config based on orientation
                     const currentCameraConfig = getCameraConfigAuto(this.app.deviceService);
                     const animConfig = currentCameraConfig.animation;
                     
@@ -199,7 +199,7 @@ export class SceneService extends BaseService {
     }
 
     /**
-     * Применение конфигурации камеры в зависимости от ориентации
+     * Apply camera configuration based on orientation
      */
     applyCameraOrientationConfig() {
         if (!this.app.deviceService) {
@@ -212,7 +212,7 @@ export class SceneService extends BaseService {
         
         console.log(`SceneService: Applying camera config for ${orientation} orientation`);
         
-        // Используем конфигурацию для текущей ориентации
+        // Use configuration for current orientation
         const config = orientation === 'portrait' ? cameraConfig.portrait : cameraConfig.landscape;
 
         if (config && config.position) {
@@ -231,20 +231,20 @@ export class SceneService extends BaseService {
             ));
         }
 
-        // Применяем FOV из начальной конфигурации
+        // Apply FOV from initial configuration
         if (cameraConfig.initial && cameraConfig.initial.fov) {
             this.app.camera.fov = BABYLON.Tools.ToRadians(cameraConfig.initial.fov);
             console.log(`Applied camera FOV for ${orientation} orientation: ${cameraConfig.initial.fov} degrees`);
         }
 
-        // Логируем применение конфигурации в режиме разработки
+        // Log configuration application in development mode
         if (this.app.IS_DEV) {
             console.log(`Applied camera config for ${orientation} orientation:`, config);
         }
     }
 
     /**
-     * Обновление анимации камеры при изменении ориентации
+     * Update camera animation when orientation changes
      */
     updateCameraAnimationForOrientation() {
         if (!this.app.deviceService || !this.app.camera || !this.app.camera.animations) {
@@ -258,10 +258,10 @@ export class SceneService extends BaseService {
         
         console.log(`SceneService: Updating camera animation for ${orientation} orientation`);
 
-        // Очищаем существующие анимации
+        // Clear existing animations
         this.app.camera.animations = [];
 
-        // Создаем новую анимацию позиции
+        // Create new position animation
         const animation = new BABYLON.Animation(
             "cameraAnimation", 
             "position", 
@@ -278,7 +278,7 @@ export class SceneService extends BaseService {
         animation.setKeys(keys);
         this.app.camera.animations.push(animation);
 
-        // Создаем новую анимацию цели
+        // Create new target animation
         const targetAnimation = new BABYLON.Animation(
             "cameraTargetAnimation", 
             "target", 
@@ -295,7 +295,7 @@ export class SceneService extends BaseService {
         targetAnimation.setKeys(targetKeys);
         this.app.camera.animations.push(targetAnimation);
 
-        // Запускаем анимацию если не в режиме предварительного просмотра
+        // Start animation if not in preview mode
         if (!this.app.IS_PREVIEW) {
             this.app.scene.beginAnimation(
                 this.app.camera, 
@@ -305,7 +305,7 @@ export class SceneService extends BaseService {
             );
         }
 
-        // Логируем обновление анимации в режиме разработки
+        // Log animation update in development mode
         if (this.app.IS_DEV) {
             console.log(`Updated camera animation for ${orientation} orientation`);
         }

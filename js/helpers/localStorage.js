@@ -1,10 +1,10 @@
 /**
- * Безопасная работа с localStorage с fallback через IndexedDB и sessionStorage
- * Обрабатывает случаи, когда localStorage недоступен (инкогнито режим, отключенные cookies, etc.)
- * Иерархия fallback: localStorage → IndexedDB → sessionStorage → память
+ * Safe localStorage operations with fallback through IndexedDB and sessionStorage
+ * Handles cases when localStorage is unavailable (incognito mode, disabled cookies, etc.)
+ * Fallback hierarchy: localStorage → IndexedDB → sessionStorage → memory
  */
 
-// Fallback объект для случаев, когда все хранилища недоступны
+// Fallback object for cases when all storage is unavailable
 const memoryStorage = {
     storage: {},
     setItem(key, value) {
@@ -21,7 +21,7 @@ const memoryStorage = {
     }
 };
 
-// IndexedDB wrapper для синхронного API
+// IndexedDB wrapper for synchronous API
 class IndexedDBStorage {
     constructor() {
         this.dbName = 'FallbackStorage';
@@ -38,7 +38,7 @@ class IndexedDBStorage {
                 const request = indexedDB.open(this.dbName, this.version);
                 
                 request.onerror = () => {
-                    console.warn('IndexedDB не удалось открыть:', request.error);
+                    console.warn('Failed to open IndexedDB:', request.error);
                     reject(request.error);
                 };
                 
@@ -56,7 +56,7 @@ class IndexedDBStorage {
                 };
             });
         } catch (error) {
-            console.warn('IndexedDB инициализация не удалась:', error);
+            console.warn('IndexedDB initialization failed:', error);
             throw error;
         }
     }
@@ -134,12 +134,12 @@ class IndexedDBStorage {
     }
 }
 
-// Глобальный экземпляр IndexedDB storage
+// Global IndexedDB storage instance
 let indexedDBStorage = null;
 
 /**
- * Проверяет доступность localStorage
- * @returns {boolean} true если localStorage доступен
+ * Check localStorage availability
+ * @returns {boolean} true if localStorage is available
  */
 function isLocalStorageAvailable() {
     try {
@@ -153,8 +153,8 @@ function isLocalStorageAvailable() {
 }
 
 /**
- * Проверяет доступность sessionStorage
- * @returns {boolean} true если sessionStorage доступен
+ * Check sessionStorage availability
+ * @returns {boolean} true if sessionStorage is available
  */
 function isSessionStorageAvailable() {
     try {
@@ -168,8 +168,8 @@ function isSessionStorageAvailable() {
 }
 
 /**
- * Проверяет доступность IndexedDB
- * @returns {Promise<boolean>} true если IndexedDB доступен
+ * Check IndexedDB availability
+ * @returns {Promise<boolean>} true if IndexedDB is available
  */
 async function isIndexedDBAvailable() {
     try {
@@ -177,7 +177,7 @@ async function isIndexedDBAvailable() {
             return false;
         }
         
-        // Пробуем создать тестовую базу данных
+        // Try to create test database
         const testDbName = '_indexedDB_test_' + Date.now();
         return new Promise((resolve) => {
             const request = indexedDB.open(testDbName, 1);
@@ -185,12 +185,12 @@ async function isIndexedDBAvailable() {
             request.onerror = () => resolve(false);
             request.onsuccess = () => {
                 request.result.close();
-                // Удаляем тестовую базу
+                // Delete test database
                 indexedDB.deleteDatabase(testDbName);
                 resolve(true);
             };
             request.onupgradeneeded = (event) => {
-                // Создаем тестовый store
+                // Create test store
                 const db = event.target.result;
                 db.createObjectStore('test');
             };
@@ -201,8 +201,8 @@ async function isIndexedDBAvailable() {
 }
 
 /**
- * Получает или создает экземпляр IndexedDB storage
- * @returns {Promise<IndexedDBStorage>} экземпляр IndexedDB storage
+ * Get or create IndexedDB storage instance
+ * @returns {Promise<IndexedDBStorage>} IndexedDB storage instance
  */
 async function getIndexedDBStorage() {
     if (!indexedDBStorage) {
@@ -210,7 +210,7 @@ async function getIndexedDBStorage() {
         try {
             await indexedDBStorage.initPromise;
         } catch (error) {
-            console.warn('IndexedDB недоступен:', error);
+            console.warn('IndexedDB unavailable:', error);
             indexedDBStorage = null;
             throw error;
         }
@@ -219,64 +219,64 @@ async function getIndexedDBStorage() {
 }
 
 /**
- * Получает безопасный объект для работы с хранилищем
- * Проверяет доступность в порядке: localStorage → IndexedDB → sessionStorage → память
- * @returns {Promise<{storage: Storage|Object, type: string}>} доступное хранилище или fallback объект
+ * Get safe storage object
+ * Checks availability in order: localStorage → IndexedDB → sessionStorage → memory
+ * @returns {Promise<{storage: Storage|Object, type: string}>} available storage or fallback object
  */
 async function getSafeStorage() {
-    // Пробуем localStorage
+    // Try localStorage
     if (typeof window !== 'undefined' && window.localStorage && isLocalStorageAvailable()) {
         return { storage: window.localStorage, type: 'localStorage' };
     }
     
-    // Fallback на IndexedDB
+    // Fallback to IndexedDB
     try {
         if (typeof window !== 'undefined' && window.indexedDB && await isIndexedDBAvailable()) {
-            console.warn('localStorage недоступен, используется IndexedDB');
+            console.warn('localStorage unavailable, using IndexedDB');
             const idbStorage = await getIndexedDBStorage();
             return { storage: idbStorage, type: 'indexedDB' };
         }
     } catch (error) {
-        console.warn('IndexedDB недоступен:', error);
+        console.warn('IndexedDB unavailable:', error);
     }
     
-    // Fallback на sessionStorage
+    // Fallback to sessionStorage
     if (typeof window !== 'undefined' && window.sessionStorage && isSessionStorageAvailable()) {
-        console.warn('localStorage и IndexedDB недоступны, используется sessionStorage');
+        console.warn('localStorage and IndexedDB unavailable, using sessionStorage');
         return { storage: window.sessionStorage, type: 'sessionStorage' };
     }
     
-    // Последний fallback - память
-    console.warn('Все хранилища недоступны, используется хранилище в памяти');
+    // Last fallback - memory
+    console.warn('All storage unavailable, using memory storage');
     return { storage: memoryStorage, type: 'memory' };
 }
 
 /**
- * Синхронная версия getSafeStorage (без IndexedDB)
- * @returns {{storage: Storage|Object, type: string}} доступное хранилище или fallback объект
+ * Synchronous version of getSafeStorage (without IndexedDB)
+ * @returns {{storage: Storage|Object, type: string}} available storage or fallback object
  */
 function getSafeStorageSync() {
-    // Пробуем localStorage
+    // Try localStorage
     if (typeof window !== 'undefined' && window.localStorage && isLocalStorageAvailable()) {
         return { storage: window.localStorage, type: 'localStorage' };
     }
     
-    // Fallback на sessionStorage
+    // Fallback to sessionStorage
     if (typeof window !== 'undefined' && window.sessionStorage && isSessionStorageAvailable()) {
-        console.warn('localStorage недоступен, используется sessionStorage');
+        console.warn('localStorage unavailable, using sessionStorage');
         return { storage: window.sessionStorage, type: 'sessionStorage' };
     }
     
-    // Последний fallback - память
-    console.warn('localStorage и sessionStorage недоступны, используется хранилище в памяти');
+    // Last fallback - memory
+    console.warn('localStorage and sessionStorage unavailable, using memory storage');
     return { storage: memoryStorage, type: 'memory' };
 }
 
 /**
- * Безопасно устанавливает значение в хранилище
- * @param {string} key - ключ
- * @param {string} value - значение
- * @returns {Promise<boolean>} true если операция прошла успешно
+ * Safely set value in storage
+ * @param {string} key - key
+ * @param {string} value - value
+ * @returns {Promise<boolean>} true if operation was successful
  */
 export async function safeSetItem(key, value) {
     try {
@@ -288,18 +288,18 @@ export async function safeSetItem(key, value) {
             storage.setItem(key, value);
         }
         
-        console.log(`Данные сохранены в ${type}: ${key}`);
+        console.log(`Data saved to ${type}: ${key}`);
         return true;
     } catch (error) {
-        console.error('Ошибка при записи в хранилище:', error);
+        console.error('Error writing to storage:', error);
         return false;
     }
 }
 
 /**
- * Безопасно получает значение из хранилища
- * @param {string} key - ключ
- * @returns {Promise<string|null>} значение или null
+ * Safely get value from storage
+ * @param {string} key - key
+ * @returns {Promise<string|null>} value or null
  */
 export async function safeGetItem(key) {
     try {
@@ -313,19 +313,19 @@ export async function safeGetItem(key) {
         }
         
         if (value !== null) {
-            console.log(`Данные получены из ${type}: ${key}`);
+            console.log(`Data retrieved from ${type}: ${key}`);
         }
         return value;
     } catch (error) {
-        console.error('Ошибка при чтении из хранилища:', error);
+        console.error('Error reading from storage:', error);
         return null;
     }
 }
 
 /**
- * Безопасно удаляет значение из хранилища
- * @param {string} key - ключ
- * @returns {Promise<boolean>} true если операция прошла успешно
+ * Safely remove value from storage
+ * @param {string} key - key
+ * @returns {Promise<boolean>} true if operation was successful
  */
 export async function safeRemoveItem(key) {
     try {
@@ -337,17 +337,17 @@ export async function safeRemoveItem(key) {
             storage.removeItem(key);
         }
         
-        console.log(`Данные удалены из ${type}: ${key}`);
+        console.log(`Data removed from ${type}: ${key}`);
         return true;
     } catch (error) {
-        console.error('Ошибка при удалении из хранилища:', error);
+        console.error('Error removing from storage:', error);
         return false;
     }
 }
 
 /**
- * Безопасно очищает хранилище
- * @returns {Promise<boolean>} true если операция прошла успешно
+ * Safely clear storage
+ * @returns {Promise<boolean>} true if operation was successful
  */
 export async function safeClear() {
     try {
@@ -359,17 +359,17 @@ export async function safeClear() {
             storage.clear();
         }
         
-        console.log(`Хранилище очищено: ${type}`);
+        console.log(`Storage cleared: ${type}`);
         return true;
     } catch (error) {
-        console.error('Ошибка при очистке хранилища:', error);
+        console.error('Error clearing storage:', error);
         return false;
     }
 }
 
 /**
- * Получает тип используемого хранилища
- * @returns {Promise<string>} 'localStorage', 'indexedDB', 'sessionStorage' или 'memory'
+ * Get type of used storage
+ * @returns {Promise<string>} 'localStorage', 'indexedDB', 'sessionStorage' or 'memory'
  */
 export async function getStorageType() {
     const { type } = await getSafeStorage();
@@ -377,8 +377,8 @@ export async function getStorageType() {
 }
 
 /**
- * Синхронная версия getStorageType (без IndexedDB)
- * @returns {string} 'localStorage', 'sessionStorage' или 'memory'
+ * Synchronous version of getStorageType (without IndexedDB)
+ * @returns {string} 'localStorage', 'sessionStorage' or 'memory'
  */
 export function getStorageTypeSync() {
     const { type } = getSafeStorageSync();
@@ -386,8 +386,8 @@ export function getStorageTypeSync() {
 }
 
 /**
- * Диагностическая функция для проверки доступности всех типов хранилища
- * @returns {Promise<Object>} объект с информацией о доступности хранилищ
+ * Diagnostic function to check availability of all storage types
+ * @returns {Promise<Object>} object with information about storage availability
  */
 export async function getStorageInfo() {
     const indexedDBAvailable = await isIndexedDBAvailable();

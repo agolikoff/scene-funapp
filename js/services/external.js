@@ -270,7 +270,7 @@ export class ExternalService extends BaseService {
             if (success) {
                 console.log(`External data updated and saved to ${storageType}`, combinedData);
             } else {
-                console.error(`Не удалось сохранить данные в ${storageType}`);
+                console.error(`Failed to save data to ${storageType}`);
             }
             
             window.showLoadingScreen("Loading external data...");
@@ -278,7 +278,7 @@ export class ExternalService extends BaseService {
             window.hideLoadingScreenAfterDelay(500);
             
             if (!this.app.IS_PREVIEW && this.app.runtime.loaded) {
-                // Получаем конфиг анимации в зависимости от ориентации
+                // Get animation config based on orientation
                 const cameraConfig = getCameraConfigAuto(this.app.deviceService);
                 const animConfig = cameraConfig.animation;
                 this.app.scene.beginAnimation(this.app.camera, animConfig.fromFrame, animConfig.toFrame, true);

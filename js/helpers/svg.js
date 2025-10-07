@@ -26,7 +26,7 @@ export const convertSVGContentToDataUrl = function (svgContent, options = {
         };
 
         img.onerror = function (e) {
-            reject('Ошибка загрузки изображения: ' + e);
+            reject('Image loading error: ' + e);
         };
     });
 }
@@ -36,6 +36,6 @@ export const convertSVGToDataUrl = function (svgUrl, options) {
         fetch(svgUrl)
             .then(response => response.text())
             .then(svgContent => svgContentToDataUrl(svgContent, options || undefined).then(pngDataUrl => resolve(pngDataUrl)))
-            .catch(error => reject('Ошибка загрузки SVG: ' + error));
+            .catch(error => reject('SVG loading error: ' + error));
     });
 }

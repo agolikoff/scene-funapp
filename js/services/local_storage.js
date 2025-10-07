@@ -5,7 +5,7 @@ import { safeGetItem, getStorageType } from "../helpers/localStorage.js";
 
 export class LocalStorageService extends BaseService {    
     async extractDataFromLocalStorage() {
-        // Получаем данные из хранилища по ключу 'air'
+        // Get data from storage by key 'air'
         const airDataString = await safeGetItem('air');
         const storageType = await getStorageType();
         
