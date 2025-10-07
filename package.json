@@ -2,7 +2,6 @@
   "name": "basketball-scene-proxy",
   "version": "1.0.0",
   "description": "Proxy server for basketball scene authentication",
-  "type": "module",
   "main": "proxy.js",
   "scripts": {
     "start": "node proxy.js",
