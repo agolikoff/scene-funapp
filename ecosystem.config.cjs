@@ -2,15 +2,15 @@ module.exports = {
   apps: [{
     name: 'basketball-scene-proxy',
     script: 'proxy.js',
-    instances: 'max', // Use all available CPU cores
-    exec_mode: 'cluster',
+    instances: 1, // Use all available CPU cores
+    exec_mode: 'fork',
     env: {
       NODE_ENV: 'development',
-      PORT: 3000
+      PORT: 8008
     },
     env_production: {
       NODE_ENV: 'production',
-      PORT: 3000
+      PORT: 8008
     },
     // Logging
     log_file: './logs/combined.log',

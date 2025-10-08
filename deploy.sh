@@ -70,7 +70,7 @@ fi
 # Setup PM2
 print_status "Setting up PM2..."
 pm2 delete basketball-scene-proxy 2>/dev/null || true
-pm2 start ecosystem.config.js --env production
+pm2 start ecosystem.config.cjs --env production
 
 # Save PM2 configuration
 pm2 save

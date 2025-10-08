@@ -51,7 +51,7 @@ show_usage() {
 # Function to start application
 start_app() {
     print_header "Starting application..."
-    pm2 start ecosystem.config.js --env production
+    pm2 start ecosystem.config.cjs --env production
     print_status "Application started successfully"
 }
 

@@ -30,22 +30,75 @@ npm run dev
 
 ## How it works
 
-1. **Nginx** receives requests and handles them based on type:
+1. **Nginx** receives requests at `/3d/external/view/` path:
    - **Static files** (`.js`, `.css`, `.png`, etc.) → served directly from project directory
-   - **API requests** (non-static files) → proxied to Node.js application
-2. **Node.js server** processes only API requests (skips static files)
-3. **Bypass check**: If `?bypass=secret-key` parameter matches `BYPASS_KEY` → shows `index.html` directly
-4. Extracts `Authorization` and `X-Date` headers from incoming request
-5. If headers are missing - shows `403.html`
-6. If headers are present - makes PUT request to validation endpoint
-7. On successful validation (status 200-299) shows `index.html`
-8. On failed validation or error shows `403.html`
+   - **Non-static requests** → proxied to Node.js application via `@proxy`
+2. **Node.js server** processes all non-static requests:
+   - **Bypass check**: If `?bypass=secret-key` parameter matches `BYPASS_KEY` → shows `index.html` directly
+   - **Authorization check**: Extracts `Authorization` and `X-Date` headers
+   - **Validation**: Makes PUT request to validation endpoint
+   - **Response**: Shows `index.html` on success or `403.html` on failure
 
 ### URL Structure:
 - **Direct access**: `http://localhost:3000/any-path`
 - **Through Nginx**: `http://your-domain.com/3d/external/view/any-path`
 - **Root redirect**: `http://your-domain.com/` → `http://your-domain.com/3d/external/view/`
 - **Static files**: `http://your-domain.com/3d/external/view/js/`, `http://your-domain.com/3d/external/view/img/`, etc.
+- **All paths end with trailing slash**: `/3d/external/view/`
+
+### System Architecture:
+
+```mermaid
+graph TD
+    A[Client Request] --> B[Nginx Server]
+    B --> C{File exists?}
+    C -->|Yes| D[Serve Static File]
+    C -->|No| E[Proxy to Node.js]
+    
+    E --> F{Bypass Key?}
+    F -->|Valid| G[Return index.html]
+    F -->|Invalid/Missing| H{Headers Present?}
+    
+    H -->|No| I[Return 403.html]
+    H -->|Yes| J[Validate with External API]
+    
+    J --> K{Validation Success?}
+    K -->|Yes| G
+    K -->|No| I
+    
+    D --> L[Client Response]
+    G --> L
+    I --> L
+    
+    style A fill:#e1f5fe
+    style B fill:#f3e5f5
+    style E fill:#fff3e0
+    style G fill:#e8f5e8
+    style I fill:#ffebee
+    style L fill:#e1f5fe
+```
+
+### Request Flow Examples:
+
+**1. Static File Request:**
+```
+Client → Nginx → File exists? → YES → Serve file directly
+```
+
+**2. Bypass Key Request:**
+```
+Client → Nginx → File exists? → NO → Node.js → Bypass valid? → YES → index.html
+```
+
+**3. API Request with Auth:**
+```
+Client → Nginx → File exists? → NO → Node.js → Headers OK? → YES → Validate → Success → index.html
+```
+
+**4. Unauthorized Request:**
+```
+Client → Nginx → File exists? → NO → Node.js → Headers OK? → NO → 403.html
+```
 
 ## Configuration
 
@@ -95,7 +148,7 @@ You can use curl for testing:
 ```bash
 # Test with headers (direct to Node.js app)
 curl -X GET http://localhost:3000/test \
-  -H "Authorization: Bearer your-token" \
+  -H "Authorization: your-token" \
   -H "X-Date: 2024-01-01T00:00:00Z"
 
 # Test without headers (should show 403.html)
@@ -103,7 +156,7 @@ curl -X GET http://localhost:3000/test
 
 # Test through Nginx proxy (recommended)
 curl -X GET http://your-domain.com/3d/external/view/test \
-  -H "Authorization: Bearer your-token" \
+  -H "Authorization: your-token" \
   -H "X-Date: 2024-01-01T00:00:00Z"
 
 # Test without headers through Nginx (should show 403.html)
@@ -115,7 +168,7 @@ curl -X GET http://your-domain.com/3d/external/view/img/logo.svg
 curl -X GET http://your-domain.com/3d/external/view/fonts/stylesheet.css
 
 # Test bypass key (if configured)
-curl -X GET "http://your-domain.com/3d/external/view/test?bypass=your-secret-bypass-key-here"
+curl -X GET "http://your-domain.com/3d/external/view/?bypass=your-secret-bypass-key-here"
 ```
 
 ## Production Deployment with PM2 and Nginx
@@ -160,7 +213,7 @@ This script will:
 
 #### 1. PM2 Configuration
 
-The application includes `ecosystem.config.js` for PM2 configuration:
+The application includes `ecosystem.config.cjs` for PM2 configuration:
 
 ```bash
 # Start with PM2
@@ -287,30 +340,46 @@ limit_req_zone $binary_remote_addr zone=api:10m rate=10r/s;
 ```
 
 4. **Static files configuration:**
-The Nginx configuration serves ALL static files from your project directory under `/3d/external/view/` path:
-- **All files and folders** in your project are accessible
+The Nginx configuration uses a simple and elegant approach:
+- **Static files** (`.js`, `.css`, `.png`, etc.) are served directly by Nginx
+- **All other requests** are proxied to Node.js via `try_files $uri @proxy`
 - **Security**: Sensitive files (`.env`, `.log`, `.sh`, `.conf`) are blocked
-- **SPA support**: Falls back to `index.html` for client-side routing
-- **Caching**: All static files are cached for 1 year
+- **Caching**: Static files are cached for 1 year
+- **Simple logic**: If file exists → serve it, if not → proxy to Node.js
 
-5. **Add additional paths:**
+5. **Example Nginx configuration:**
 ```nginx
-# Serve custom static files
-location /static/ {
-    alias /path/to/your/static/files/;
-    expires 1y;
-    add_header Cache-Control "public, immutable";
-}
-
-# Proxy other API endpoints
-location /api/ {
-    proxy_pass http://other-backend;
+# Proxy non-static requests to Node.js application
+location @proxy {
+    proxy_pass http://basketball_proxy;
+    proxy_http_version 1.1;
+    proxy_set_header Upgrade $http_upgrade;
+    proxy_set_header Connection 'upgrade';
     proxy_set_header Host $host;
     proxy_set_header X-Real-IP $remote_addr;
-    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-    proxy_set_header X-Forwarded-Proto $scheme;
+    proxy_cache_bypass $http_upgrade;
+}
+
+# Main location for /3d/external/view/ path
+location /3d/external/view/ {
+    try_files $uri @proxy;
+    
+    alias /path/to/your/project/;
+    
+    # Cache static files
+    location ~* \.(js|css|png|jpg|jpeg|gif|ico|svg|woff|woff2|ttf|eot|html|json|xml|txt|glb|gltf|manifest)$ {
+        expires 1y;
+        add_header Cache-Control "public, immutable";
+    }
+    
+    # Security: prevent access to sensitive files
+    location ~ /3d/external/view/.*\.(env|log|sh|conf)$ {
+        deny all;
+    }
 }
 ```
+
+
 
 ### Monitoring
 
@@ -396,7 +465,7 @@ sudo ufw enable
 
 1. **PM2 cluster mode:**
 - Uses all CPU cores by default
-- Adjust `instances` in `ecosystem.config.js`
+- Adjust `instances` in `ecosystem.config.cjs`
 
 2. **Nginx optimization:**
 - Enable gzip compression

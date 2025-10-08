@@ -1,8 +1,11 @@
-require('dotenv').config();
+import 'dotenv/config';
 import express from 'express';
 import axios from 'axios';
 import path from 'path';
 import { fileURLToPath } from 'url';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -39,8 +42,8 @@ app.all('*', async (req, res) => {
     // Check for bypass key first
     const bypassKey = req.query.bypass;
     if (BYPASS_KEY && bypassKey === BYPASS_KEY) {
-      console.log('Bypass key provided, showing index.html directly');
-      return res.sendFile(path.join(__dirname, 'index.html'));
+      console.log('Bypass key provided, showing real_index.html directly');
+      return res.sendFile(path.join(__dirname, 'real_index.html'));
     }
 
     // Extract Authorization and X-Date headers
@@ -89,10 +92,10 @@ app.all('*', async (req, res) => {
 
     console.log('Validation response:', validationResponse.status, validationResponse.statusText);
 
-    // If request is successful (status 200-299), show index.html
+    // If request is successful (status 200-299), show real_index.html
     if (validationResponse.status >= 200 && validationResponse.status < 300) {
-      console.log('Validation successful, showing index.html');
-      return res.sendFile(path.join(__dirname, 'index.html'));
+      console.log('Validation successful, showing real_index.html');
+      return res.sendFile(path.join(__dirname, 'real_index.html'));
     } else {
       console.log('Validation failed, showing 403.html');
       return res.sendFile(path.join(__dirname, '403.html'));

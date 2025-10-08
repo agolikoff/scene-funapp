@@ -3,10 +3,11 @@
   "version": "1.0.0",
   "description": "Proxy server for basketball scene authentication",
   "main": "proxy.js",
+  "type": "module",
   "scripts": {
     "start": "node proxy.js",
     "dev": "nodemon proxy.js",
-    "pm2:start": "pm2 start ecosystem.config.js --env production",
+    "pm2:start": "pm2 start ecosystem.config.cjs --env production",
     "pm2:stop": "pm2 stop basketball-scene-proxy",
     "pm2:restart": "pm2 restart basketball-scene-proxy",
     "pm2:reload": "pm2 reload basketball-scene-proxy",
