@@ -46,18 +46,22 @@ app.all('*', async (req, res) => {
       return res.sendFile(path.join(__dirname, 'real_index.html'));
     }
 
-    // Extract Authorization and X-Date headers
-    const authHeader = req.headers.authorization;
-    const dateHeader = req.headers['x-date'];
+    // Extract Authorization and X-Date from headers or URL parameters
+    const authHeader = req.query.authorization || req.headers.authorization;
+    const dateHeader = req.query.date || req.headers['x-date'];
 
-    console.log('Extracted headers:');
-    console.log('Authorization:', authHeader ? 'present' : 'missing');
-    console.log('X-Date:', dateHeader || 'missing');
+    console.log('Extracted authorization data:');
+    console.log('From headers - Authorization:', req.headers.authorization ? 'present' : 'missing');
+    console.log('From headers - X-Date:', req.headers['x-date'] || 'missing');
+    console.log('From URL params - authorization:', req.query.authorization ? 'present' : 'missing');
+    console.log('From URL params - date:', req.query.date || 'missing');
+    console.log('Final - Authorization:', authHeader ? 'present' : 'missing');
+    console.log('Final - Date:', dateHeader || 'missing');
     console.log('Bypass key:', bypassKey ? 'provided' : 'not provided');
 
-    // Check for required headers
+    // Check for required authorization data (from headers or URL parameters)
     if (!authHeader || !dateHeader) {
-      console.log('Missing required headers, showing 403.html');
+      console.log('Missing required authorization data, showing 403.html');
       return res.sendFile(path.join(__dirname, '403.html'));
     }
 
