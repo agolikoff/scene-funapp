@@ -45,6 +45,7 @@ export class ExternalService extends BaseService {
                 // Images
                 case 'IMAGE_CENTER_COURT':
                     settings.centerCourt = obj.objectSetting;
+                    settings.centerCourtImageId = obj.objectId;
                     break;
                 case 'IMAGE_COURT':
                     if (obj.objectId) {
@@ -126,15 +127,20 @@ export class ExternalService extends BaseService {
             const sponsorData = {};
             if (sceneData.data?.teamSponsors && Array.isArray(sceneData.data.teamSponsors)) {
                 sceneData.data.teamSponsors.forEach(sponsor => {
+                    // Initialize sponsor data object
+                    sponsorData[sponsor.id] = {};
+                    
                     if (sponsor.graphics && Array.isArray(sponsor.graphics)) {
                         sponsor.graphics.forEach(graphic => {
                             // Map by graphic name (TUNNEL, WALL, etc.)
-                            sponsorData[graphic.graphicName] = {
-                                sponsorId: sponsor.id,
-                                sponsorName: sponsor.sponsorName,
-                                filePath: graphic.graphicPathFilename,
-                                url: this.getSponsorImageUrl(teamId, sponsor.id, graphic.graphicPathFilename)
-                            };
+                            if(graphic.graphicName === 'WALL' || graphic.graphicName === 'TUNNEL') {
+                                sponsorData[sponsor.id][graphic.graphicName] = {
+                                    sponsorId: sponsor.id,
+                                    sponsorName: sponsor.sponsorName,
+                                    filePath: graphic.graphicPathFilename,
+                                    url: this.getSponsorImageUrl(teamId, sponsor.id, graphic.graphicPathFilename)
+                                };
+                            }
                         });
                     }
                 });
@@ -153,7 +159,9 @@ export class ExternalService extends BaseService {
                         
                         if (!img.playerId) {
                             // Team images (playerId is null)
-                            teamImages[img.imageType] = imageUrl;
+                            if(img.playerTeamId == teamId) {
+                                teamImages[img.imageType] = imageUrl;
+                            }
                         } else {
                             // Player images - group by playerId
                             if (!allPlayerImages[img.playerId]) {
@@ -175,9 +183,9 @@ export class ExternalService extends BaseService {
             // Helper function to create sponsor image object using real sponsor data
             const createSponsorImageObject = (setting, imageId, graphicType) => {
                 if (setting === 'Sponsor') {
-                    // Look for sponsor data by graphicType (WALL, TUNNEL, etc.)
-                    const sponsor = sponsorData[graphicType];
-                    if (sponsor) {
+                    // Look for sponsor data by imageId and graphicType
+                    if (sponsorData[imageId] && sponsorData[imageId][graphicType]) {
+                        const sponsor = sponsorData[imageId][graphicType];
                         return {
                             sponsorId: sponsor.sponsorId,
                             sponsorName: sponsor.sponsorName,
@@ -246,7 +254,7 @@ export class ExternalService extends BaseService {
                 selectedUpperSponsorImage: createSponsorImageObject(sceneSettings.upperWallSetting, sceneSettings.upperWallImageId, "WALL"),
                 selectedLowerSponsorImage: createSponsorImageObject(sceneSettings.lowerWallSetting, sceneSettings.lowerWallImageId, "WALL"), 
                 selectedHoopStanchionSponsorImage: createSponsorImageObject(sceneSettings.hoopSetting, sceneSettings.hoopImageId, "WALL"),
-                selectedCenterCourtSponsorImage: createSponsorImageObject(sceneSettings.centerCourt, sceneSettings.hoopImageId, "WALL"),
+                selectedCenterCourtSponsorImage: createSponsorImageObject(sceneSettings.centerCourt, sceneSettings.centerCourtImageId, "WALL"),
                 selectedLeftTunnelSponsorImage: createSponsorImageObject(sceneSettings.leftTunnelSetting, sceneSettings.leftTunnelImageId, "TUNNEL"),
                 selectedRightTunnelSponsorImage: createSponsorImageObject(sceneSettings.rightTunnelSetting, sceneSettings.rightTunnelImageId, "TUNNEL"),
                 
