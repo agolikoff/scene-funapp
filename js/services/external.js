@@ -90,6 +90,13 @@ export class ExternalService extends BaseService {
         return `${this.app.baseURL}/v2/hype/public/graphics/scene/image/stream?filePath=${filePath}`;
     }
 
+    getImageUrlFromId(imageId, images) {
+        if (!imageId) return null;
+        const image = images.find(img => img.id === imageId);
+        if (!image) return null;
+        return this.getImageUrl(image.imagePath);
+    }
+
     /**
      * Get sponsor image URL from sponsor data
      */
@@ -244,7 +251,7 @@ export class ExternalService extends BaseService {
                 selectedRightTunnelSponsorImage: createSponsorImageObject(sceneSettings.rightTunnelSetting, sceneSettings.rightTunnelImageId, "TUNNEL"),
                 
                 // Images
-                court: sceneSettings.courtImageId ? this.getImageUrl(sceneSettings.courtImageId) : null,
+                court: sceneSettings.courtImageId ? this.getImageUrlFromId(sceneSettings.courtImageId, sceneData.data?.images) : null,
                 logoOpponent: teamImages.TEAM_LOGO_OPPONENT || null,
                 logoHome: teamImages.TEAM_LOGO_HOME || teamImages.TEAM_LOGO || null,
                 logoTunnel: teamImages.TEAM_LOGO_TUNNEL || teamImages.TEAM_LOGO || null,

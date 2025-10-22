@@ -1,8 +1,8 @@
 const app = {};
 const SCENE_RESOLUTION = 0; // if 0 - auto
-const VERSION = '6.5';
+const VERSION = '6.7';
 //app.baseURL = '//shottracker.stacqan.com:8000';
-app.baseURL = '//hype-dev.shottracker.com/3d/fun-api';
+app.baseURL = '//hype.shottracker.com/3d/api';
 
 const [
     { ScreenService },
