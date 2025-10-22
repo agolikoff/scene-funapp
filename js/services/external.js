@@ -46,6 +46,7 @@ export class ExternalService extends BaseService {
                 case 'IMAGE_CENTER_COURT':
                     settings.centerCourt = obj.objectSetting;
                     settings.centerCourtImageId = obj.objectId;
+                    settings.centerCourtType = obj.objectSetting;
                     break;
                 case 'IMAGE_COURT':
                     if (obj.objectId) {
@@ -79,7 +80,7 @@ export class ExternalService extends BaseService {
                     break;
             }
         });
-        
+        console.log('Settings:', settings);
         return settings;
     }
 
@@ -145,7 +146,8 @@ export class ExternalService extends BaseService {
                     }
                 });
             }
-            
+            console.log('Sponsor data:', sponsorData);
+
             // Process images from scene data (now included in main request)
             let teamImages = {};
             let allPlayerImages = {}; // Group by playerId
@@ -182,6 +184,7 @@ export class ExternalService extends BaseService {
             
             // Helper function to create sponsor image object using real sponsor data
             const createSponsorImageObject = (setting, imageId, graphicType) => {
+                console.log('Creating sponsor image object:', setting, imageId, graphicType);
                 if (setting === 'Sponsor') {
                     // Look for sponsor data by imageId and graphicType
                     if (sponsorData[imageId] && sponsorData[imageId][graphicType]) {
@@ -254,7 +257,7 @@ export class ExternalService extends BaseService {
                 selectedUpperSponsorImage: createSponsorImageObject(sceneSettings.upperWallSetting, sceneSettings.upperWallImageId, "WALL"),
                 selectedLowerSponsorImage: createSponsorImageObject(sceneSettings.lowerWallSetting, sceneSettings.lowerWallImageId, "WALL"), 
                 selectedHoopStanchionSponsorImage: createSponsorImageObject(sceneSettings.hoopSetting, sceneSettings.hoopImageId, "WALL"),
-                selectedCenterCourtSponsorImage: createSponsorImageObject(sceneSettings.centerCourt, sceneSettings.centerCourtImageId, "WALL"),
+                selectedCenterCourtSponsorImage: sceneSettings.centerCourtType == 'No' ? 'No' : createSponsorImageObject(sceneSettings.centerCourt, sceneSettings.centerCourtImageId, "WALL"),
                 selectedLeftTunnelSponsorImage: createSponsorImageObject(sceneSettings.leftTunnelSetting, sceneSettings.leftTunnelImageId, "TUNNEL"),
                 selectedRightTunnelSponsorImage: createSponsorImageObject(sceneSettings.rightTunnelSetting, sceneSettings.rightTunnelImageId, "TUNNEL"),
                 
@@ -277,7 +280,7 @@ export class ExternalService extends BaseService {
                     sponsorData: sponsorData
                 }
             };
-            
+            console.log('Combined data:', combinedData);
             const jsonString = JSON.stringify(combinedData);
             const success = await safeSetItem('air', jsonString);
             const storageType = await getStorageType();
