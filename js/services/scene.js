@@ -194,7 +194,7 @@ export class SceneService extends BaseService {
 
         this.app.scene.getMeshByName('upper_wall').material.albedoColor = BABYLON.Color3.FromHexString(this.app.supportColor3).toLinearSpace();
         this.app.scene.getMeshByName('seats').material.albedoColor = BABYLON.Color3.FromHexString(this.app.supportColor1).toLinearSpace();
-        this.app.scene.getMeshByName('blue_wall').material.albedoColor = BABYLON.Color3.FromHexString(this.app.supportColor2).toLinearSpace();
+        this.app.scene.getMeshByName('lower_wall').material.albedoColor = BABYLON.Color3.FromHexString(this.app.supportColor2).toLinearSpace();
 
     }
 
