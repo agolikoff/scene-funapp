@@ -42,12 +42,48 @@
             z-index: 1000;
             display: none;
         }
+        #babylonLoadingScreen {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 1);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 10000;
+        }
+        #babylonLoadingScreen .logo-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+        #babylonLoadingScreen .logo-spinner {
+            width: 80px;
+            height: 80px;
+            animation: spin 2s linear infinite;
+        }
+        @keyframes spin {
+            from {
+                transform: rotate(0deg);
+            }
+            to {
+                transform: rotate(360deg);
+            }
+        }
     </style>
 </head>
 
 <body>
     <canvas id="renderCanvas" style="width: 100%; height: 100vh; display: block;"></canvas>
     <div id="loadingScreen"></div>
+    <div id="babylonLoadingScreen" style="display: none;">
+        <div class="logo-container">
+            <img src="img/logo.svg" alt="Loading" class="logo-spinner">
+        </div>
+    </div>
     <img src="tex/povered_by_shottracker.svg" style="position: absolute; bottom: 20px; right: 20px; width: 18%;">
     <div id="fpsLabel"></div>
     <script type="module" src="./js/app.js?v=6.8.1"></script>

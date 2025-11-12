@@ -139,6 +139,33 @@ if (SCENE_RESOLUTION){
     let sceneRatio = viewportWidth / SCENE_RESOLUTION;
     app.engine.setHardwareScalingLevel(sceneRatio);
 }
+
+// Create custom loading screen with rotating logo
+class CustomLoadingScreen {
+    constructor() {
+        this.loadingScreenDiv = document.getElementById('babylonLoadingScreen');
+    }
+
+    displayLoadingUI() {
+        if (this.loadingScreenDiv) {
+            this.loadingScreenDiv.style.display = 'flex';
+        }
+    }
+
+    hideLoadingUI() {
+        if (this.loadingScreenDiv) {
+            this.loadingScreenDiv.style.display = 'none';
+        }
+    }
+
+    get loadingUIBackgroundColor() {
+        return '#000000';
+    }
+}
+
+// Set custom loading screen
+app.engine.loadingScreen = new CustomLoadingScreen();
+
 app.scene = new BABYLON.Scene(app.engine);
 
 
