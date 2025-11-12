@@ -56,6 +56,7 @@ export class SceneService extends BaseService {
         // Load the GLTF model
         BABYLON.SceneLoader.Append("./", "scene.glb" + (this.app.IS_DEV ? "?time=" + (new Date()).getTime() : ""), this.app.scene,
             () => {
+                try {
                 this.app.runtime.loaded = true;
 
                 if (!this.app.IS_DEV) {
@@ -115,8 +116,7 @@ export class SceneService extends BaseService {
                     }
                 }
 
-                this.app.scene.getMeshByName('ball1').setEnabled(false);
-                this.app.scene.getMeshByName('ball2').setEnabled(false);
+
                 if(this.app.extractedData && this.app.extractedData.userLevel == 'A'){
                     this.app.scene.getMeshByName('logo_shottracker').setEnabled(false);
                 }
@@ -186,7 +186,15 @@ export class SceneService extends BaseService {
                 this.applyColors();
 
                 this.app.startLoop();
-            });
+                } catch (error) {
+                    console.error("Error in onSuccess callback:", error);
+                    throw error;
+                }
+            },
+            undefined,
+            (error) => {
+                console.error("Error loading scene.glb:", error);
+        });
     }
 
     applyColors() {
